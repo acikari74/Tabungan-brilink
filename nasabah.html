@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+<title>Nasabah — Tabungan Customer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --primary:#F97316; --primary-hover:#EA580C; --secondary:#1E1B4B;
+    --bg:#F8FAFC; --surface:#FFFFFF; --success:#10B981; --danger:#EF4444;
+    --text-main:#0F172A; --text-muted:#64748B; --border:#F1F5F9;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text-main); -webkit-tap-highlight-color:transparent;}
+  h1,h2,h3,h4,.heading{font-family:'Plus Jakarta Sans',sans-serif; letter-spacing:-0.02em;}
+  .app{max-width:448px; margin:0 auto; width:100%; min-height:100vh; background:var(--bg); position:relative; padding-bottom:96px; overflow-x:hidden; box-shadow:0 0 60px rgba(0,0,0,.08);}
+  .hidden{display:none !important;}
+  button{font-family:inherit; cursor:pointer;}
+  input{font-family:inherit;}
+  .btn-primary{background:var(--primary); color:#fff; font-weight:700; border:none; border-radius:999px; padding:15px; font-size:15px; transition:transform .15s, background .15s;}
+  .btn-primary:active{transform:scale(.96); background:var(--primary-hover);}
+  .btn-primary:disabled{opacity:.5;}
+  .btn-outline{background:#fff; color:var(--text-main); font-weight:700; border:1.5px solid var(--border); border-radius:999px; padding:14px; font-size:14px; transition:transform .15s;}
+  .btn-outline:active{transform:scale(.96);}
+  .field-input{width:100%; padding:14px 16px; border-radius:14px; border:1.5px solid var(--border); background:#F8FAFC; font-size:15px; color:var(--text-main); outline:none; transition:border-color .15s, background .15s;}
+  .field-input:focus{border-color:var(--primary); background:#fff;}
+  .card{background:var(--surface); border-radius:24px; border:1px solid #F1F5F9; box-shadow:0 8px 30px rgba(0,0,0,.04);}
+  .shell{padding:0 24px;}
+  .fade-in{animation:fadeSlideUp .35s ease both;}
+  @keyframes fadeSlideUp{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:translateY(0);}}
+  .spin{width:18px; height:18px; border:2.5px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .bottom-nav{position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:448px; background:#fff; border-top:1px solid var(--border); padding:12px 22px calc(12px + env(safe-area-inset-bottom)); display:flex; justify-content:space-between; align-items:center; z-index:50; border-radius:22px 22px 0 0; box-shadow:0 -8px 30px rgba(0,0,0,.03);}
+  .nav-btn{display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--text-muted); background:none; border:none; font-size:10.5px; font-weight:600; flex:1; padding:4px;}
+  .nav-btn.active{color:var(--primary);}
+  .member-card{position:relative; border-radius:24px; padding:26px; overflow:hidden; background:linear-gradient(135deg,#312E81,#1E1B4B 60%); color:#fff; box-shadow:0 20px 40px -12px rgba(30,27,75,.45);}
+  .member-card .orb{position:absolute; border-radius:50%; filter:blur(40px); opacity:.55;}
+  .pill{padding:4px 11px; border-radius:20px; font-size:10.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;}
+  .pill-green{background:rgba(16,185,129,.14); color:var(--success);}
+  .pill-red{background:rgba(239,68,68,.12); color:var(--danger);}
+  .pill-gray{background:#F1F5F9; color:var(--text-muted);}
+  .progress-track{width:100%; height:9px; background:#F1F5F9; border-radius:999px; overflow:hidden;}
+  .progress-fill{height:100%; background:var(--primary); border-radius:999px; transition:width .5s ease;}
+  .tab-btn{flex:1; text-align:center; padding:10px; border-radius:999px; font-weight:700; font-size:13px; border:none; background:none; color:var(--text-muted); transition:.15s;}
+  .tab-btn.active{background:var(--secondary); color:#fff;}
+  .empty-box{text-align:center; padding:40px 20px; color:var(--text-muted);}
+  .empty-box img{width:120px; height:120px; object-fit:cover; border-radius:20px; margin:0 auto 16px; opacity:.85;}
+  .pin-dot{width:16px; height:16px; border-radius:50%; border:2px solid var(--secondary); transition:.15s;}
+  .pin-dot.filled{background:var(--primary); border-color:var(--primary);}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- BOOT -->
+  <div id="screen-boot" style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;">
+    <div style="width:56px; height:56px; border-radius:18px; background:var(--secondary); display:flex; align-items:center; justify-content:center;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
+    </div>
+    <div style="color:var(--text-muted); font-size:13px;" id="boot-msg">Memuat…</div>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="screen-login" class="hidden shell fade-in" style="min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding-top:40px; padding-bottom:40px;">
+    <div style="text-align:center; margin-bottom:36px;">
+      <div style="width:60px; height:60px; border-radius:20px; background:var(--secondary); display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
+      </div>
+      <h1 style="font-size:22px; font-weight:800; margin:0;" id="login-agent-name">Tabungan Nasabah</h1>
+      <p style="color:var(--text-muted); font-size:13.5px; margin:6px 0 0;">Cek saldo & riwayat tabungan Anda kapan saja</p>
+    </div>
+    <div class="card" style="padding:24px;">
+      <form id="form-login">
+        <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">No. Rekening</label>
+        <input class="field-input" id="li-norek" placeholder="Contoh: 000123" inputmode="numeric" style="margin:8px 0 16px;">
+        <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">No. HP Terdaftar (pertama kali) / PIN Anda</label>
+        <input class="field-input" id="li-pass" type="password" placeholder="No. HP atau PIN 6 digit" style="margin:8px 0 6px;">
+        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:18px;">Pertama kali login? Pakai No. HP yang terdaftar di agen. Nanti Anda akan diminta buat PIN sendiri.</div>
+        <button type="submit" class="btn-primary" style="width:100%;" id="btn-login"><span>Masuk</span></button>
+      </form>
+      <div id="login-err" style="color:var(--danger); font-size:12.5px; margin-top:12px; text-align:center;"></div>
+    </div>
+    <div style="text-align:center; font-size:11.5px; color:var(--text-muted); margin-top:20px;">Belum punya akses login? Hubungi staff agen Anda.</div>
+  </div>
+
+  <!-- BUAT PIN (pertama kali) -->
+  <div id="screen-setpin" class="hidden shell fade-in" style="min-height:100vh; display:flex; flex-direction:column; justify-content:center;">
+    <div style="text-align:center; margin-bottom:30px;">
+      <h1 style="font-size:20px; font-weight:800; margin:0 0 6px;">Buat PIN Anda</h1>
+      <p style="color:var(--text-muted); font-size:13px; margin:0;">PIN ini akan dipakai untuk login berikutnya, gantikan No. HP</p>
+    </div>
+    <div class="card" style="padding:24px;">
+      <form id="form-setpin">
+        <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">PIN Baru (minimal 6 digit)</label>
+        <input class="field-input" id="sp-pin1" type="password" inputmode="numeric" placeholder="Buat PIN" style="margin:8px 0 16px;">
+        <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">Ulangi PIN</label>
+        <input class="field-input" id="sp-pin2" type="password" inputmode="numeric" placeholder="Ulangi PIN" style="margin:8px 0 18px;">
+        <button type="submit" class="btn-primary" style="width:100%;" id="btn-setpin"><span>Simpan PIN & Masuk</span></button>
+      </form>
+      <div id="setpin-err" style="color:var(--danger); font-size:12.5px; margin-top:12px; text-align:center;"></div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="screen-main" class="hidden">
+    <header style="position:sticky; top:0; z-index:40; background:rgba(248,250,252,.85); backdrop-filter:blur(20px); padding:18px 24px 10px; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div style="font-size:11.5px; color:var(--text-muted);">Halo,</div>
+        <div style="font-weight:800; font-size:16px;" id="hdr-name">—</div>
+      </div>
+      <div style="width:42px; height:42px; border-radius:14px; overflow:hidden; background:var(--secondary); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:13px;" id="hdr-avatar">—</div>
+    </header>
+
+    <div id="page-home" class="shell fade-in"></div>
+    <div id="page-riwayat" class="shell fade-in hidden"></div>
+    <div id="page-program" class="shell fade-in hidden"></div>
+    <div id="page-profil" class="shell fade-in hidden"></div>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="home" onclick="switchTab('home')">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Home</button>
+      <button class="nav-btn" data-tab="riwayat" onclick="switchTab('riwayat')">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
+        Riwayat</button>
+      <button class="nav-btn" data-tab="program" onclick="switchTab('program')">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        Program</button>
+      <button class="nav-btn" data-tab="profil" onclick="switchTab('profil')">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profil</button>
+    </nav>
+  </div>
+</div>
+
+<script>
+/* ============================= FIREBASE ============================= */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBVD_JxRan2imOtcWCxc78_2zHvb1uY_UA",
+  authDomain: "buku-tabungan-d91d3.firebaseapp.com",
+  projectId: "buku-tabungan-d91d3",
+  storageBucket: "buku-tabungan-d91d3.firebasestorage.app",
+  messagingSenderId: "259351197970",
+  appId: "1:259351197970:web:468eee581958e5f74f1bcb",
+  measurementId: "G-KWC8F3N9Z9"
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const CUSTOMER_EMAIL_DOMAIN = '@nasabah.tabungan-app.local';
+
+function normalizeDigits(s){ return (s||'').replace(/\D/g,''); }
+function normalizePhoneForAuth(hp){
+  let d = normalizeDigits(hp);
+  if(d.startsWith('0')) d = '62'+d.slice(1);
+  if(!d.startsWith('62')) d = '62'+d;
+  return d;
+}
+function norekToEmail(noRekening){ return normalizeDigits(noRekening) + CUSTOMER_EMAIL_DOMAIN; }
+function rupiah(n){ n = Number(n)||0; return 'Rp ' + n.toLocaleString('id-ID'); }
+function fmtDate(d){ const dt = new Date(d); return dt.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
+function fmtTime(d){ const dt = new Date(d); return dt.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }
+function initials(name){ return (name||'?').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase(); }
+
+const STATE = { customerId:null, customer:null, transactions:[], goals:[], showBalance:true, tab:'home' };
+let unsubCustomer=null, unsubTx=null, unsubGoals=null;
+
+function showScreen(id){
+  ['screen-boot','screen-login','screen-setpin','screen-main'].forEach(s=>{
+    document.getElementById(s).classList.toggle('hidden', s!==id);
+  });
+}
+
+auth.onAuthStateChanged(async (user)=>{
+  if(user){
+    const prof = await db.collection('customer_profiles').doc(user.uid).get();
+    if(!prof.exists){ await auth.signOut(); showScreen('screen-login'); return; }
+    const data = prof.data();
+    if(!data.pinSet){ showScreen('screen-setpin'); return; }
+    STATE.customerId = data.customerId;
+    await enterApp();
+  } else {
+    showScreen('screen-login');
+  }
+});
+
+/* ---------- LOGIN ---------- */
+document.getElementById('form-login').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const norek = document.getElementById('li-norek').value.trim();
+  const pass = document.getElementById('li-pass').value;
+  const errEl = document.getElementById('login-err');
+  errEl.textContent='';
+  if(!norek || !pass){ errEl.textContent='Isi No. Rekening dan No. HP/PIN terlebih dahulu.'; return; }
+  const btn = document.getElementById('btn-login');
+  btn.innerHTML = '<span class="spin"></span>'; btn.disabled = true;
+  const email = norekToEmail(norek);
+  try{
+    await auth.signInWithEmailAndPassword(email, pass);
+  }catch(e1){
+    const normalized = normalizePhoneForAuth(pass);
+    if(normalized !== pass){
+      try{ await auth.signInWithEmailAndPassword(email, normalized); }
+      catch(e2){ btn.innerHTML='<span>Masuk</span>'; btn.disabled=false; errEl.textContent='No. Rekening atau No. HP/PIN salah.'; return; }
+    } else {
+      btn.innerHTML='<span>Masuk</span>'; btn.disabled=false; errEl.textContent='No. Rekening atau No. HP/PIN salah.'; return;
+    }
+  }
+  btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
+});
+
+/* ---------- BUAT PIN ---------- */
+document.getElementById('form-setpin').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const p1 = document.getElementById('sp-pin1').value;
+  const p2 = document.getElementById('sp-pin2').value;
+  const errEl = document.getElementById('setpin-err');
+  errEl.textContent='';
+  if(p1.length<6){ errEl.textContent='PIN minimal 6 digit.'; return; }
+  if(p1!==p2){ errEl.textContent='PIN tidak sama, coba lagi.'; return; }
+  const btn = document.getElementById('btn-setpin');
+  btn.innerHTML='<span class="spin"></span>'; btn.disabled=true;
+  try{
+    await auth.currentUser.updatePassword(p1);
+    await db.collection('customer_profiles').doc(auth.currentUser.uid).update({ pinSet:true });
+    const prof = await db.collection('customer_profiles').doc(auth.currentUser.uid).get();
+    STATE.customerId = prof.data().customerId;
+    await enterApp();
+  }catch(err){
+    btn.innerHTML='<span>Simpan PIN & Masuk</span>'; btn.disabled=false;
+    if(err.code==='auth/requires-recent-login'){ errEl.textContent='Sesi login sudah lama, silakan login ulang lalu coba lagi.'; }
+    else errEl.textContent = err.message;
+  }
+});
+
+/* ---------- MASUK APLIKASI (real-time listeners) ---------- */
+async function enterApp(){
+  showScreen('screen-main');
+  if(unsubCustomer) unsubCustomer();
+  if(unsubTx) unsubTx();
+  if(unsubGoals) unsubGoals();
+
+  unsubCustomer = db.collection('customers').doc(STATE.customerId).onSnapshot(doc=>{
+    if(!doc.exists) return;
+    STATE.customer = { id:doc.id, ...doc.data() };
+    document.getElementById('hdr-name').textContent = STATE.customer.nama.split(' ')[0];
+    document.getElementById('hdr-avatar').textContent = initials(STATE.customer.nama);
+    renderCurrentTab();
+  });
+  unsubTx = db.collection('transactions').where('customerId','==',STATE.customerId).onSnapshot(snap=>{
+    STATE.transactions = snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    renderCurrentTab();
+  }, err=>console.error(err));
+  unsubGoals = db.collection('goals').where('customerId','==',STATE.customerId).onSnapshot(snap=>{
+    STATE.goals = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderCurrentTab();
+  }, err=>console.error(err));
+
+  db.collection('agent_settings').doc('main').get().then(doc=>{
+    if(doc.exists) document.getElementById('login-agent-name').textContent = doc.data().name || 'Tabungan Nasabah';
+  });
+}
+
+function switchTab(tab){
+  STATE.tab = tab;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  ['home','riwayat','program','profil'].forEach(t=>document.getElementById('page-'+t).classList.toggle('hidden', t!==tab));
+  renderCurrentTab();
+}
+function renderCurrentTab(){
+  if(!STATE.customer) return;
+  if(STATE.tab==='home') renderHome();
+  else if(STATE.tab==='riwayat') renderRiwayat();
+  else if(STATE.tab==='program') renderProgram();
+  else if(STATE.tab==='profil') renderProfil();
+}
+
+/* ---------- HOME ---------- */
+function renderHome(){
+  const c = STATE.customer;
+  const recent = STATE.transactions.slice(0,3);
+  document.getElementById('page-home').innerHTML = `
+    <div class="member-card" style="margin-top:6px;">
+      <div class="orb" style="width:180px; height:180px; background:#F97316; top:-60px; right:-50px;"></div>
+      <div class="orb" style="width:120px; height:120px; background:#6366F1; bottom:-40px; left:-30px;"></div>
+      <div style="position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <div style="font-size:11.5px; opacity:.7;">Saldo Anda</div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+              <div style="font-size:26px; font-weight:800;" id="home-saldo">${STATE.showBalance ? rupiah(c.saldo) : 'Rp ••••••••'}</div>
+              <button onclick="toggleBalance()" style="background:rgba(255,255,255,.15); border:none; width:30px; height:30px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff;">
+                ${STATE.showBalance
+                  ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+                  : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'}
+              </button>
+            </div>
+          </div>
+          <div style="width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
+          </div>
+        </div>
+        <div style="margin-top:22px; font-size:14px; font-weight:700; letter-spacing:1px;">${c.noRekening}</div>
+        <div style="font-size:12px; opacity:.75; margin-top:2px;">${c.nama}</div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px;">
+      <div class="card" style="padding:16px; text-align:center;">
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">Total Setor</div>
+        <div style="font-weight:800; font-size:14.5px; color:var(--success);">${rupiah(c.totalSetor)}</div>
+      </div>
+      <div class="card" style="padding:16px; text-align:center;">
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">Total Tarik</div>
+        <div style="font-weight:800; font-size:14.5px; color:var(--danger);">${rupiah(c.totalTarik)}</div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="font-size:14.5px; margin:0;">Transaksi Terakhir</h3>
+      <button onclick="switchTab('riwayat')" style="background:none; border:none; color:var(--primary); font-size:12px; font-weight:700;">Lihat Semua</button>
+    </div>
+    <div class="card" style="margin-top:10px; padding:6px 4px;">
+      ${recent.length ? recent.map(txRow).join('') : `<div class="empty-box" style="padding:24px;">Belum ada transaksi</div>`}
+    </div>
+  `;
+}
+function toggleBalance(){ STATE.showBalance = !STATE.showBalance; renderCurrentTab(); }
+
+function txRow(t){
+  const isSetor = t.type==='setor';
+  const isTarik = t.type==='tarik';
+  const color = isSetor ? 'var(--success)' : isTarik ? 'var(--danger)' : 'var(--text-muted)';
+  const bg = isSetor ? 'rgba(16,185,129,.1)' : isTarik ? 'rgba(239,68,68,.1)' : '#F1F5F9';
+  return `
+  <div style="display:flex; align-items:center; gap:12px; padding:12px 14px;">
+    <div style="width:38px; height:38px; border-radius:12px; background:${bg}; color:${color}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+      ${isSetor ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>'
+      : isTarik ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>'
+      : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M4 10a8 8 0 0114-4.9M20 14a8 8 0 01-14 4.9"/></svg>'}
+    </div>
+    <div style="flex:1; min-width:0;">
+      <div style="font-weight:700; font-size:13.5px;">${isSetor?'Setor Tunai':isTarik?'Tarik Tunai':'Koreksi Saldo'}</div>
+      <div style="font-size:11px; color:var(--text-muted);">${fmtDate(t.date)} • ${fmtTime(t.date)}</div>
+    </div>
+    <div style="font-weight:800; font-size:13.5px; color:${color};">${isTarik?'-':'+'}${rupiah(t.amount)}</div>
+  </div>`;
+}
+
+/* ---------- RIWAYAT ---------- */
+function renderRiwayat(){
+  const txs = STATE.transactions;
+  document.getElementById('page-riwayat').innerHTML = `
+    <h2 style="font-size:19px; margin:14px 0 16px;">Riwayat Transaksi</h2>
+    <div class="card" style="padding:6px 4px;">
+      ${txs.length ? txs.map(txRow).join('') : emptyBox('empty_wallet','Belum ada transaksi tercatat')}
+    </div>
+  `;
+}
+
+/* ---------- PROGRAM (Kantong) ---------- */
+function goalScheme(price, months){
+  months = Math.max(0.25, months);
+  const totalDays = Math.max(1, Math.round(months*30));
+  const totalWeeks = Math.max(1, Math.round(months*4.345));
+  const totalMonths = Math.max(1, Math.round(months));
+  const roundUp = v=>Math.ceil(v/500)*500;
+  return { perHari:roundUp(price/totalDays), perMinggu:roundUp(price/totalWeeks), perBulan:roundUp(price/totalMonths) };
+}
+function renderProgram(){
+  const goals = STATE.goals;
+  document.getElementById('page-program').innerHTML = `
+    <h2 style="font-size:19px; margin:14px 0 16px;">Program Tabungan</h2>
+    ${goals.length ? goals.map(goalCard).join('') : emptyBox('empty_wallet','Belum ada program tabungan aktif. Hubungi staff agen untuk membuatkan program.')}
+  `;
+}
+function goalCard(g){
+  const pct = g.target>0 ? Math.min(100, Math.round((g.terkumpul/g.target)*100)) : 0;
+  const isDone = g.status==='selesai';
+  const s = goalScheme(g.target, g.tenorBulan);
+  return `
+  <div class="card" style="padding:20px; margin-bottom:14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <b style="font-size:14.5px;">${g.namaBarang}</b>
+      <span class="pill ${isDone?'pill-green':'pill-gray'}">${isDone?'Tercapai':`${g.tenorBulan} bulan`}</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;">
+      <span style="color:var(--text-muted);">Terkumpul</span>
+      <b>${rupiah(g.terkumpul)} <span style="color:var(--text-muted); font-weight:500;">/ ${rupiah(g.target)}</span></b>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%;"></div></div>
+    <div style="display:flex; justify-content:space-between; margin-top:8px;">
+      <span style="color:${pct>=100?'var(--success)':'var(--primary)'}; font-weight:800; font-size:13px;">${pct}%</span>
+      <span style="font-size:11.5px; color:var(--text-muted);">${isDone?'Program selesai 🎉':`Sisa ${rupiah(Math.max(0,g.target-g.terkumpul))}`}</span>
+    </div>
+    ${!isDone ? `
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px;">
+      <div style="background:#F8FAFC; border-radius:12px; padding:10px; text-align:center;"><div style="font-size:10px; color:var(--text-muted);">Per Hari</div><b style="font-size:12px;">${rupiah(s.perHari)}</b></div>
+      <div style="background:#FFF7ED; border-radius:12px; padding:10px; text-align:center;"><div style="font-size:10px; color:var(--primary);">Per Minggu</div><b style="font-size:12px; color:var(--primary);">${rupiah(s.perMinggu)}</b></div>
+      <div style="background:#F8FAFC; border-radius:12px; padding:10px; text-align:center;"><div style="font-size:10px; color:var(--text-muted);">Per Bulan</div><b style="font-size:12px;">${rupiah(s.perBulan)}</b></div>
+    </div>` : ''}
+  </div>`;
+}
+
+/* ---------- PROFIL ---------- */
+function renderProfil(){
+  const c = STATE.customer;
+  document.getElementById('page-profil').innerHTML = `
+    <h2 style="font-size:19px; margin:14px 0 16px;">Profil</h2>
+    <div class="card" style="padding:22px; text-align:center; margin-bottom:16px;">
+      <div style="width:66px; height:66px; border-radius:20px; background:var(--secondary); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; margin:0 auto 12px;">${initials(c.nama)}</div>
+      <div style="font-weight:800; font-size:16px;">${c.nama}</div>
+      <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${c.noRekening} • Member ${c.noMember}</div>
+    </div>
+    <div class="card" style="padding:6px 4px; margin-bottom:16px;">
+      ${profilRow('No. HP', c.hp)}
+      ${profilRow('Alamat', c.alamat)}
+      ${profilRow('Bergabung', fmtDate(c.tglDaftar))}
+      ${profilRow('Status', c.status)}
+    </div>
+    <button class="btn-outline" style="width:100%; margin-bottom:10px;" onclick="openGantiPin()">Ganti PIN</button>
+    <button class="btn-outline" style="width:100%; color:var(--danger); border-color:#FEE2E2;" onclick="doLogout()">Keluar</button>
+    <div id="pin-modal"></div>
+  `;
+}
+function profilRow(label, val){
+  return `<div style="display:flex; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--border);"><span style="font-size:12.5px; color:var(--text-muted);">${label}</span><b style="font-size:13px; text-align:right; max-width:60%;">${val||'—'}</b></div>`;
+}
+function openGantiPin(){
+  document.getElementById('pin-modal').innerHTML = `
+  <div style="position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:100; display:flex; align-items:flex-end;" onclick="if(event.target===this) closeGantiPin()">
+    <div class="card fade-in" style="width:100%; max-width:448px; margin:0 auto; border-radius:24px 24px 0 0; padding:24px;" onclick="event.stopPropagation()">
+      <h3 style="margin:0 0 16px;">Ganti PIN</h3>
+      <form id="form-gantipin">
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted);">PIN Lama</label>
+        <input class="field-input" id="gp-old" type="password" inputmode="numeric" style="margin:6px 0 12px;">
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted);">PIN Baru (min. 6 digit)</label>
+        <input class="field-input" id="gp-new" type="password" inputmode="numeric" style="margin:6px 0 12px;">
+        <div id="gp-err" style="color:var(--danger); font-size:12px; margin-bottom:10px;"></div>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn-outline" style="flex:1;" onclick="closeGantiPin()">Batal</button>
+          <button type="submit" class="btn-primary" style="flex:1;">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+  document.getElementById('form-gantipin').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const oldPin = document.getElementById('gp-old').value;
+    const newPin = document.getElementById('gp-new').value;
+    const errEl = document.getElementById('gp-err');
+    if(newPin.length<6){ errEl.textContent='PIN baru minimal 6 digit.'; return; }
+    try{
+      const cred = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, oldPin);
+      await auth.currentUser.reauthenticateWithCredential(cred);
+      await auth.currentUser.updatePassword(newPin);
+      closeGantiPin();
+      alert('PIN berhasil diganti.');
+    }catch(err){ errEl.textContent = err.code==='auth/wrong-password' ? 'PIN lama salah.' : err.message; }
+  });
+}
+function closeGantiPin(){ document.getElementById('pin-modal').innerHTML=''; }
+function doLogout(){
+  if(!confirm('Keluar dari akun ini?')) return;
+  if(unsubCustomer) unsubCustomer();
+  if(unsubTx) unsubTx();
+  if(unsubGoals) unsubGoals();
+  auth.signOut();
+}
+
+function emptyBox(imgKey, text){
+  const imgs = {
+    empty_wallet: 'https://images.unsplash.com/photo-1624811532681-e58a7e25f273?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwyfHxlbXB0eSUyMHdhbGxldCUyMHNhdmluZ3N8ZW58MHx8fHwxNzg0MzU4NzA1fDA&ixlib=rb-4.1.0&q=85',
+  };
+  return `<div class="empty-box"><img src="${imgs[imgKey]}" alt=""><div>${text}</div></div>`;
+}
+</script>
+</body>
+</html>
