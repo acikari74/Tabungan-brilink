@@ -607,6 +607,47 @@ function initials(name){ return (name||'?').split(' ').map(s=>s[0]).join('').sli
 const FAKE_EMAIL_DOMAIN = '@staff.tabungan-app.local';
 function usernameToEmail(u){ return u.trim().toLowerCase().replace(/[^a-z0-9._-]/g,'') + FAKE_EMAIL_DOMAIN; }
 
+/* ---------- Login Nasabah: provisioning akun (dipakai app khusus nasabah) ---------- */
+const CUSTOMER_EMAIL_DOMAIN = '@nasabah.tabungan-app.local';
+function normalizeDigits(s){ return (s||'').replace(/\D/g,''); }
+function normalizePhoneForAuth(hp){
+  let d = normalizeDigits(hp);
+  if(d.startsWith('0')) d = '62'+d.slice(1);
+  if(!d.startsWith('62')) d = '62'+d;
+  return d; // dipakai sebagai password sementara, min 6 digit (nomor HP selalu >6 digit)
+}
+function norekToEmail(noRekening){ return normalizeDigits(noRekening) + CUSTOMER_EMAIL_DOMAIN; }
+async function provisionCustomerLogin(customerId){
+  const c = STATE.customers.find(x=>x.id===customerId);
+  if(!c) return;
+  if(c.authProvisioned){ toast('Sudah aktif', 'Akun login nasabah ini sudah pernah diaktifkan sebelumnya.', true); return; }
+  try{
+    const secName = 'cust-create-'+Date.now();
+    const secApp = firebase.initializeApp(getFbConfig(), secName);
+    const secAuth = secApp.auth();
+    const cred = await secAuth.createUserWithEmailAndPassword(norekToEmail(c.noRekening), normalizePhoneForAuth(c.hp));
+    const newUid = cred.user.uid;
+    await secAuth.signOut();
+    await secApp.delete();
+    await db.collection('customer_profiles').doc(newUid).set({ customerId: c.id, pinSet:false });
+    c.authProvisioned = true;
+    await dbSet('customers', [c]);
+    addLog(`Akses login nasabah diaktifkan: ${c.nama} (${c.noRekening})`, 'info');
+    toast('Login nasabah aktif', `${c.nama} sekarang bisa login di app Nasabah pakai No. Rekening + No. HP terdaftar, lalu buat PIN sendiri.`);
+    return true;
+  }catch(err){
+    if(err.code==='auth/email-already-in-use'){
+      // Sudah pernah dibuat sebelumnya (mis. dari percobaan lalu) tapi flag belum ke-set
+      c.authProvisioned = true;
+      await dbSet('customers', [c]);
+      toast('Sudah aktif', 'Akun login nasabah ini ternyata sudah ada.', true);
+    } else {
+      toast('Gagal mengaktifkan login', err.message, true);
+    }
+    return false;
+  }
+}
+
 async function boot(){
   document.getElementById('boot').style.display='none';
   document.getElementById('login-screen').style.display='flex';
@@ -1048,9 +1089,11 @@ async function saveNasabah(){
     saldo: 0,
     totalSetor: 0,
     totalTarik: 0,
+    authProvisioned: false,
   };
   STATE.customers.push(c);
   await dbSet('customers', STATE.customers);
+  await provisionCustomerLogin(c.id);
   if(setoranAwal>0){
     await logTransaction(c, 'setor', setoranAwal, 'Setoran awal pembukaan rekening');
   }
@@ -1096,6 +1139,13 @@ function viewDetailNasabah(id){
           <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">No. HP</span><b>${c.hp}</b></div>
           <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">Alamat</span><b style="text-align:right; max-width:60%;">${c.alamat}</b></div>
           <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">No. RFID</span><b>${c.rfid||'—'}</b></div>
+        </div>
+        <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:12px; color:var(--muted);">Login App Nasabah</div>
+            <span class="pill ${c.authProvisioned?'green':'gray'}">${c.authProvisioned?'Sudah Aktif':'Belum Aktif'}</span>
+          </div>
+          ${c.authProvisioned ? '' : `<button class="btn btn-primary btn-sm" onclick="provisionCustomerLogin('${c.id}').then(ok=>{ if(ok) render('detail-nasabah'); })">Aktifkan Login</button>`}
         </div>
       </div>
     </div>
