@@ -1,0 +1,16 @@
+{
+  "name": "Tabungan Nasabah",
+  "short_name": "Tabungan",
+  "description": "Cek saldo dan riwayat tabungan Anda kapan saja",
+  "start_url": "./nasabah.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8FAFC",
+  "theme_color": "#1E1B4B",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
