@@ -654,7 +654,14 @@ async function boot(){
   if(sessionStorage.getItem('force_connect_screen')){ sessionStorage.removeItem('force_connect_screen'); renderConnectScreen(); return; }
   if(!initFbClient()){ renderConnectScreen(); return; }
   auth.onAuthStateChanged(async (user)=>{
-    if(user){ await loadDataAndEnter(user); }
+    if(user){
+      try{ await loadDataAndEnter(user); }
+      catch(e){
+        console.error('Sesi tidak valid untuk app staff:', e);
+        await auth.signOut();
+        await afterConnected();
+      }
+    }
     else{ await afterConnected(); }
   }, ()=>{ renderConnectScreen('Gagal memeriksa sesi login.'); });
 }
