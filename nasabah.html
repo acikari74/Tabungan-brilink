@@ -144,6 +144,7 @@
     <div id="page-home" class="shell fade-in"></div>
     <div id="page-riwayat" class="shell fade-in hidden"></div>
     <div id="page-program" class="shell fade-in hidden"></div>
+    <div id="page-titipan" class="shell fade-in hidden"></div>
     <div id="page-profil" class="shell fade-in hidden"></div>
 
     <nav class="bottom-nav">
@@ -156,6 +157,9 @@
       <button class="nav-btn" data-tab="program" onclick="switchTab('program')">
         <span class="nav-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
         Program</button>
+      <button class="nav-btn" data-tab="titipan" onclick="switchTab('titipan')">
+        <span class="nav-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.91 8.84L8.56 21.19a4 4 0 0 1-5.65-5.65l9.19-9.19a2.5 2.5 0 0 1 3.54 3.54L7 18.36"/></svg></span>
+        Titipan</button>
       <button class="nav-btn" data-tab="profil" onclick="switchTab('profil')">
         <span class="nav-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
         Profil</button>
@@ -192,8 +196,8 @@ function fmtDate(d){ const dt = new Date(d); return dt.toLocaleDateString('id-ID
 function fmtTime(d){ const dt = new Date(d); return dt.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }
 function initials(name){ return (name||'?').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase(); }
 
-const STATE = { customerId:null, customer:null, transactions:[], goals:[], showBalance:true, tab:'home' };
-let unsubCustomer=null, unsubTx=null, unsubGoals=null;
+const STATE = { customerId:null, customer:null, transactions:[], goals:[], titipan:[], showBalance:true, tab:'home' };
+let unsubCustomer=null, unsubTx=null, unsubGoals=null, unsubTitipan=null;
 
 function showScreen(id){
   ['screen-boot','screen-login','screen-setpin','screen-main'].forEach(s=>{
@@ -289,6 +293,7 @@ async function enterApp(){
   if(unsubCustomer) unsubCustomer();
   if(unsubTx) unsubTx();
   if(unsubGoals) unsubGoals();
+  if(unsubTitipan) unsubTitipan();
 
   unsubCustomer = db.collection('customers').doc(STATE.customerId).onSnapshot(doc=>{
     if(!doc.exists) return;
@@ -305,6 +310,10 @@ async function enterApp(){
     STATE.goals = snap.docs.map(d=>({id:d.id, ...d.data()}));
     renderCurrentTab();
   }, err=>console.error(err));
+  unsubTitipan = db.collection('titipan').where('customerId','==',STATE.customerId).onSnapshot(snap=>{
+    STATE.titipan = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderCurrentTab();
+  }, err=>console.error(err));
 
   db.collection('agent_settings').doc('main').get().then(doc=>{
     if(doc.exists) document.getElementById('login-agent-name').textContent = doc.data().name || 'Tabungan Nasabah';
@@ -314,7 +323,7 @@ async function enterApp(){
 function switchTab(tab){
   STATE.tab = tab;
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  ['home','riwayat','program','profil'].forEach(t=>document.getElementById('page-'+t).classList.toggle('hidden', t!==tab));
+  ['home','riwayat','program','titipan','profil'].forEach(t=>document.getElementById('page-'+t).classList.toggle('hidden', t!==tab));
   renderCurrentTab();
 }
 function renderCurrentTab(){
@@ -322,6 +331,7 @@ function renderCurrentTab(){
   if(STATE.tab==='home') renderHome();
   else if(STATE.tab==='riwayat') renderRiwayat();
   else if(STATE.tab==='program') renderProgram();
+  else if(STATE.tab==='titipan') renderTitipan();
   else if(STATE.tab==='profil') renderProfil();
 }
 
@@ -452,6 +462,46 @@ function goalCard(g){
   </div>`;
 }
 
+/* ---------- TITIPAN BARANG (read-only) ---------- */
+const TITIPAN_CATS = { perhiasan:'💍', elektronik:'📱', kendaraan:'🏍️', dokumen:'📄', lain:'📦' };
+function titipanJatuhTempo(t){ const d = new Date(t.mulai); d.setMonth(d.getMonth()+t.tenorBulan); return d; }
+function titipanSisaHari(t){ return Math.ceil((titipanJatuhTempo(t) - new Date())/86400000); }
+function titipanStatus(t){
+  if(t.status==='ditebus') return {text:'Sudah Ditebus', cls:'pill-green'};
+  if(t.status==='terjual') return {text:'Terjual/Lelang', cls:'pill-gray'};
+  const sisa = titipanSisaHari(t);
+  if(sisa<0) return {text:`Lewat tempo ${Math.abs(sisa)} hari`, cls:'pill-red'};
+  if(sisa<=7) return {text:`Jatuh tempo ${sisa} hari lagi`, cls:'pill-red'};
+  return {text:`Aktif — ${sisa} hari lagi`, cls:'pill-green'};
+}
+function renderTitipan(){
+  const items = STATE.titipan;
+  document.getElementById('page-titipan').innerHTML = `
+    <h2 style="font-size:19px; margin:14px 0 6px;">Titipan Barang</h2>
+    <p style="font-size:12px; color:var(--text-muted); margin:0 0 16px;">Dana talangan dengan jaminan barang — biaya jasa penitipan, bukan bunga</p>
+    ${items.length ? items.map(titipanCardView).join('') : emptyBox('empty_wallet','Belum ada titipan barang tercatat')}
+  `;
+}
+function titipanCardView(t){
+  const st = titipanStatus(t);
+  const isAktif = t.status==='aktif';
+  return `
+  <div class="card" style="padding:20px; margin-bottom:14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:38px; height:38px; border-radius:12px; background:#F8FAFC; display:flex; align-items:center; justify-content:center; font-size:17px;">${TITIPAN_CATS[t.kategori]||'📦'}</div>
+        <b style="font-size:14px;">${t.namaBarang}</b>
+      </div>
+      <span class="pill ${st.cls}">${st.text}</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;"><span style="color:var(--text-muted);">Taksiran Barang</span><b>${rupiah(t.taksiran)}</b></div>
+    <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;"><span style="color:var(--text-muted);">Dana Talangan</span><b>${rupiah(t.pinjaman)}</b></div>
+    <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;"><span style="color:var(--text-muted);">Jasa Penitipan/Bulan</span><b style="color:var(--primary);">${rupiah(t.tarifJasaPerBulan)}</b></div>
+    <div style="display:flex; justify-content:space-between; font-size:12.5px;"><span style="color:var(--text-muted);">Total Jasa Terbayar</span><b style="color:var(--success);">${rupiah(t.totalJasaDibayar||0)}</b></div>
+    ${isAktif ? `<div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border); font-size:11.5px; color:var(--text-muted); text-align:center;">Mau bayar jasa atau tebus barang? Datang langsung ke agen.</div>` : ''}
+  </div>`;
+}
+
 /* ---------- PROFIL ---------- */
 function renderProfil(){
   const c = STATE.customer;
@@ -515,6 +565,7 @@ function doLogout(){
   if(unsubCustomer) unsubCustomer();
   if(unsubTx) unsubTx();
   if(unsubGoals) unsubGoals();
+  if(unsubTitipan) unsubTitipan();
   auth.signOut();
 }
 
