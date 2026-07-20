@@ -1305,10 +1305,12 @@ function printReceipt(txId){
   const win = window.open('', '_blank', 'width=380,height=640');
   if(!win){ toast('Gagal membuka jendela cetak', 'Izinkan pop-up untuk situs ini di browser Anda.', true); return; }
   win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Struk ${t.id}</title>
+  <meta name="color-scheme" content="light only">
   <style>
     @page{ size:80mm auto; margin:0; }
     *{ box-sizing:border-box; }
-    body{ width:80mm; margin:0; padding:5mm 4mm; font-family:'Courier New',Courier,monospace; font-size:12px; line-height:1.5; color:#000; }
+    html{ background:#fff !important; color-scheme:light only; }
+    body{ width:80mm; margin:0; padding:5mm 4mm; font-family:'Courier New',Courier,monospace; font-size:12px; line-height:1.5; color:#000 !important; background:#fff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     .center{ text-align:center; }
     .b{ font-weight:700; }
     .big{ font-size:16px; font-weight:700; }
@@ -1317,6 +1319,7 @@ function printReceipt(txId){
     .row{ display:flex; justify-content:space-between; gap:10px; margin:3px 0; }
     .row span:first-child{ color:#333; }
     .foot{ margin-top:10px; }
+    @media print{ html,body{ background:#fff !important; } }
   </style></head>
   <body>
     <div class="center b" style="font-size:14px;">${STATE.settings.name}</div>
