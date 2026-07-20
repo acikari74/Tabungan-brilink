@@ -203,8 +203,28 @@ function showScreen(id){
 
 auth.onAuthStateChanged(async (user)=>{
   if(user){
-    const prof = await db.collection('customer_profiles').doc(user.uid).get();
-    if(!prof.exists){ await auth.signOut(); showScreen('screen-login'); return; }
+    let prof;
+    try{
+      prof = await db.collection('customer_profiles').doc(user.uid).get();
+    }catch(e){
+      console.error('Gagal cek profil nasabah:', e);
+      // Sesi ini bukan sesi nasabah yang valid (mis. bekas sesi staff yang
+      // nyangkut di browser yang sama). Keluarkan HANYA kalau sesi itu
+      // masih sama dengan yang sedang aktif sekarang (hindari menimpa
+      // login baru yang mungkin sedang berlangsung bersamaan).
+      if(auth.currentUser && auth.currentUser.uid === user.uid) await auth.signOut();
+      showScreen('screen-login');
+      return;
+    }
+    // Cek ulang: kalau di antara waktu baca profil ini user sudah ganti
+    // (mis. sedang proses login baru), jangan timpa apapun, biarkan
+    // pemanggilan onAuthStateChanged berikutnya yang menangani.
+    if(!auth.currentUser || auth.currentUser.uid !== user.uid) return;
+    if(!prof.exists){
+      if(auth.currentUser.uid === user.uid) await auth.signOut();
+      showScreen('screen-login');
+      return;
+    }
     const data = prof.data();
     if(!data.pinSet){ showScreen('screen-setpin'); return; }
     STATE.customerId = data.customerId;
