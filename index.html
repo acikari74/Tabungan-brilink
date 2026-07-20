@@ -1101,13 +1101,24 @@ async function saveNasabah(){
   STATE.customers.push(c);
   await dbSet('customers', STATE.customers);
   await provisionCustomerLogin(c.id);
+  let setoranAwalTx = null;
   if(setoranAwal>0){
-    await logTransaction(c, 'setor', setoranAwal, 'Setoran awal pembukaan rekening');
+    setoranAwalTx = await logTransaction(c, 'setor', setoranAwal, 'Setoran awal pembukaan rekening');
   }
   addLog(`Nasabah baru ditambahkan: ${nama} (${c.noRekening})`, 'baru');
-  toast('Nasabah ditambahkan', `${nama} berhasil didaftarkan.`);
   closeModal();
   render('nasabah');
+  if(setoranAwalTx){
+    openModal(`
+      <div class="modal-head"><h3>✅ Nasabah Ditambahkan</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <div class="modal-body">
+        <div class="sim-row big" style="margin-bottom:14px;"><div><b>${nama}</b><br><span>${c.noRekening} • Setoran awal ${rupiah(setoranAwal)}</span></div></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printReceipt('${setoranAwalTx.id}')">🖨️ Cetak Struk</button></div>
+    `);
+  } else {
+    toast('Nasabah ditambahkan', `${nama} berhasil didaftarkan.`);
+  }
 }
 
 /* ============================= DETAIL NASABAH (PASSBOOK) ============================= */
@@ -1662,18 +1673,23 @@ async function confirmSetorGoal(goalId){
   const c = STATE.customers.find(x=>x.id===g.customerId);
   const amount = getMoneyInput('gs-amount');
   if(amount<=0){ toast('Nominal tidak valid', 'Masukkan nominal lebih dari 0.', true); return; }
-  await setorKeGoal(g, amount);
+  const tx = await setorKeGoal(g, amount);
   const done = g.status==='selesai';
-  toast(done?'Target tercapai! 🎉':'Setoran berhasil', done
-    ? `Program "${g.namaBarang}" milik ${c?c.nama:''} sudah mencapai target ${rupiah(g.target)}.`
-    : `${rupiah(amount)} masuk ke program "${g.namaBarang}".`);
   closeModal();
   render('program');
+  openModal(`
+    <div class="modal-head"><h3>${done?'🎉 Target Tercapai!':'✅ Setoran Berhasil'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(amount)}</b><br><span>${g.namaBarang} — ${c?c.nama:''}</span></div></div>
+      ${done ? `<div class="login-hint">Program sudah mencapai target ${rupiah(g.target)} 🎉</div>` : ''}
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${tx?`<button class="btn btn-primary" onclick="printReceipt('${tx.id}')">🖨️ Cetak Struk</button>`:''}</div>
+  `);
 }
 async function setorKeGoal(g, amount){
   const c = STATE.customers.find(x=>x.id===g.customerId);
-  if(!c) return;
-  await logTransaction(c, 'setor', amount, `Program: ${g.namaBarang}`);
+  if(!c) return null;
+  const tx = await logTransaction(c, 'setor', amount, `Program: ${g.namaBarang}`);
   g.terkumpul += amount;
   if(g.terkumpul >= g.target && g.status!=='selesai'){
     g.status = 'selesai';
@@ -1681,6 +1697,7 @@ async function setorKeGoal(g, amount){
     addLog(`Program tabungan TERCAPAI: ${g.namaBarang} — ${c.nama} (${rupiah(g.target)})`, 'baru');
   }
   await dbSet('goals', STATE.goals);
+  return tx;
 }
 
 /* ---------- Detail & hapus program ---------- */
