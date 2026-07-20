@@ -1296,59 +1296,135 @@ async function logTransaction(c, type, amount, note){
 }
 
 /* ============================= CETAK STRUK (80mm thermal) ============================= */
+function openReceiptPrint(title, bodyHtml){
+  const win = window.open('', '_blank', 'width=380,height=640');
+  if(!win){ toast('Gagal membuka jendela cetak', 'Izinkan pop-up untuk situs ini di browser Anda.', true); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
+  <meta name="color-scheme" content="light only">
+  <style>
+    @page{ size:80mm auto; margin:0; }
+    *{ box-sizing:border-box; }
+    html{ background:#fff !important; color-scheme:light only; }
+    body{ width:80mm; margin:0; padding:5mm 4mm; font-family:'Courier New',Courier,monospace; font-weight:700; font-size:12.5px; line-height:1.6; color:#000 !important; background:#fff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .center{ text-align:center; }
+    .b{ font-weight:800; }
+    .big{ font-size:19px; font-weight:800; letter-spacing:.3px; }
+    .muted{ font-size:11px; font-weight:700; color:#000; }
+    .line{ border-top:2px dashed #000; margin:9px 0; }
+    .line-solid{ border-top:2.5px solid #000; margin:9px 0; }
+    .row{ display:flex; justify-content:space-between; gap:10px; margin:4px 0; font-weight:700; }
+    .row span:first-child{ color:#000; }
+    .foot{ margin-top:10px; font-weight:700; }
+    .head-title{ font-size:15px; font-weight:800; letter-spacing:.5px; }
+    @media print{ html,body{ background:#fff !important; } }
+  </style></head>
+  <body>
+    <div class="center head-title">${STATE.settings.name}</div>
+    <div class="center muted">${STATE.settings.address||''}</div>
+    <div class="center muted">${STATE.settings.wa?('WA: '+STATE.settings.wa):''}</div>
+    <div class="line-solid"></div>
+    ${bodyHtml}
+    <div class="line-solid"></div>
+    <div class="center foot">Struk ini adalah bukti transaksi<br>yang sah. Terima kasih.</div>
+  </body></html>`);
+  win.document.close();
+  win.onload = ()=>{ win.focus(); win.print(); };
+}
+function receiptRow(label, value, bold){ return `<div class="row"><span>${label}</span><span${bold?' class="b"':''}>${value}</span></div>`; }
+
 function printReceipt(txId){
   const t = STATE.transactions.find(x=>x.id===txId);
   if(!t){ toast('Struk tidak ditemukan', 'Transaksi ini tidak ditemukan.', true); return; }
   const c = STATE.customers.find(x=>x.id===t.customerId);
   const typeLabel = t.type==='setor' ? 'SETOR TUNAI' : t.type==='tarik' ? 'TARIK TUNAI' : 'KOREKSI SALDO';
   const sign = t.type==='tarik' ? '-' : '+';
-  const win = window.open('', '_blank', 'width=380,height=640');
-  if(!win){ toast('Gagal membuka jendela cetak', 'Izinkan pop-up untuk situs ini di browser Anda.', true); return; }
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Struk ${t.id}</title>
-  <meta name="color-scheme" content="light only">
-  <style>
-    @page{ size:80mm auto; margin:0; }
-    *{ box-sizing:border-box; }
-    html{ background:#fff !important; color-scheme:light only; }
-    body{ width:80mm; margin:0; padding:5mm 4mm; font-family:'Courier New',Courier,monospace; font-size:12px; line-height:1.5; color:#000 !important; background:#fff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    .center{ text-align:center; }
-    .b{ font-weight:700; }
-    .big{ font-size:16px; font-weight:700; }
-    .muted{ font-size:10.5px; color:#333; }
-    .line{ border-top:1px dashed #000; margin:8px 0; }
-    .row{ display:flex; justify-content:space-between; gap:10px; margin:3px 0; }
-    .row span:first-child{ color:#333; }
-    .foot{ margin-top:10px; }
-    @media print{ html,body{ background:#fff !important; } }
-  </style></head>
-  <body>
-    <div class="center b" style="font-size:14px;">${STATE.settings.name}</div>
-    <div class="center muted">${STATE.settings.address||''}</div>
-    <div class="center muted">${STATE.settings.wa?('WA: '+STATE.settings.wa):''}</div>
-    <div class="line"></div>
+  const body = `
     <div class="center b">${typeLabel}</div>
     <div class="line"></div>
-    <div class="row"><span>Tanggal</span><span>${fmtDate(t.date)} ${fmtTime(t.date)}</span></div>
-    <div class="row"><span>No. Transaksi</span><span>${t.id}</span></div>
-    <div class="row"><span>Staff</span><span>${t.staff}</span></div>
+    ${receiptRow('Tanggal', fmtDate(t.date)+' '+fmtTime(t.date))}
+    ${receiptRow('No. Transaksi', t.id)}
+    ${receiptRow('Staff', t.staff)}
     <div class="line"></div>
-    <div class="row"><span>Nasabah</span><span class="b">${c?c.nama:'—'}</span></div>
-    <div class="row"><span>No. Rekening</span><span>${c?c.noRekening:'—'}</span></div>
+    ${receiptRow('Nasabah', c?c.nama:'—', true)}
+    ${receiptRow('No. Rekening', c?c.noRekening:'—')}
     <div class="line"></div>
     <div class="center muted">Nominal</div>
     <div class="center big">${sign}${rupiah(t.amount)}</div>
     <div class="line"></div>
-    <div class="row"><span>Saldo Sebelum</span><span>${rupiah(t.saldoSebelum)}</span></div>
-    <div class="row"><span>Saldo Sesudah</span><span class="b">${rupiah(t.saldoSesudah)}</span></div>
+    ${receiptRow('Saldo Sebelum', rupiah(t.saldoSebelum))}
+    ${receiptRow('Saldo Sesudah', rupiah(t.saldoSesudah), true)}
     ${t.keterangan ? `<div class="line"></div><div class="muted">Ket: ${t.keterangan}</div>` : ''}
-    <div class="line"></div>
-    <div class="center foot muted">Struk ini adalah bukti transaksi<br>yang sah. Terima kasih.</div>
-  </body></html>`);
-  win.document.close();
-  win.onload = ()=>{ win.focus(); win.print(); };
+  `;
+  openReceiptPrint('Struk '+t.id, body);
 }
 
-/* ============================= BUKU TABUNGAN (GLOBAL) ============================= */
+/* ---------- Cetak struk titipan barang ---------- */
+function printTitipanReceipt(titipanId, eventType, extra){
+  const t = STATE.titipan.find(x=>x.id===titipanId);
+  if(!t){ toast('Struk tidak ditemukan', 'Data titipan ini tidak ditemukan.', true); return; }
+  const c = STATE.customers.find(x=>x.id===t.customerId);
+  const cat = TITIPAN_CATS[t.kategori] || TITIPAN_CATS.lain;
+  const labelMap = { baru:'TITIPAN BARANG BARU', jasa:'BAYAR JASA PENITIPAN', tebus:'TEBUS BARANG', lelang:'BARANG TERJUAL/LELANG' };
+  let amountBlock = '';
+  if(eventType==='baru'){
+    amountBlock = `<div class="center muted">Dana Talangan Diterima</div><div class="center big">+${rupiah(t.pinjaman)}</div>`;
+  } else if(eventType==='jasa'){
+    amountBlock = `<div class="center muted">Jasa Penitipan Dibayar (${extra.bulan} bulan)</div><div class="center big">${rupiah(extra.total)}</div>`;
+  } else if(eventType==='tebus'){
+    amountBlock = `<div class="center muted">Total Ditebus</div><div class="center big">${rupiah(extra.total)}</div>`;
+  } else if(eventType==='lelang'){
+    amountBlock = `<div class="center muted">Harga Jual/Lelang</div><div class="center big">${rupiah(extra.harga)}</div>`;
+  }
+  const body = `
+    <div class="center b">${labelMap[eventType]||'TITIPAN BARANG'}</div>
+    <div class="line"></div>
+    ${receiptRow('Tanggal', fmtDate(new Date())+' '+fmtTime(new Date()))}
+    ${receiptRow('No. Titipan', t.id)}
+    ${receiptRow('Staff', STATE.currentUser.name)}
+    <div class="line"></div>
+    ${receiptRow('Nasabah', c?c.nama:'—', true)}
+    ${receiptRow('No. Rekening', c?c.noRekening:'—')}
+    <div class="line"></div>
+    ${receiptRow('Barang', cat.emoji+' '+t.namaBarang)}
+    ${receiptRow('Taksiran', rupiah(t.taksiran))}
+    <div class="line"></div>
+    ${amountBlock}
+    <div class="line"></div>
+    ${receiptRow('Dana Talangan', rupiah(t.pinjaman))}
+    ${receiptRow('Jasa/Bulan', rupiah(t.tarifJasaPerBulan))}
+    ${eventType!=='tebus'&&eventType!=='lelang' ? receiptRow('Jatuh Tempo', fmtDate(titipanJatuhTempo(t))) : ''}
+  `;
+  openReceiptPrint('Struk Titipan '+t.id, body);
+}
+
+/* ---------- Cetak struk info Program Tabungan baru (tanpa uang) ---------- */
+function printProgramReceipt(goalId){
+  const g = STATE.goals.find(x=>x.id===goalId);
+  if(!g){ toast('Struk tidak ditemukan', 'Program ini tidak ditemukan.', true); return; }
+  const c = STATE.customers.find(x=>x.id===g.customerId);
+  const s = goalScheme(g.target, g.tenorBulan);
+  const body = `
+    <div class="center b">PROGRAM TABUNGAN BARU</div>
+    <div class="line"></div>
+    ${receiptRow('Tanggal', fmtDate(g.mulai)+' '+fmtTime(g.mulai))}
+    ${receiptRow('No. Program', g.id)}
+    ${receiptRow('Staff', STATE.currentUser.name)}
+    <div class="line"></div>
+    ${receiptRow('Nasabah', c?c.nama:'—', true)}
+    ${receiptRow('No. Rekening', c?c.noRekening:'—')}
+    <div class="line"></div>
+    ${receiptRow('Target Barang', g.namaBarang)}
+    ${receiptRow('Harga Target', rupiah(g.target))}
+    ${receiptRow('Jangka Waktu', g.tenorBulan+' bulan')}
+    ${g.terkumpul>0 ? receiptRow('Setoran Awal', rupiah(g.terkumpul), true) : ''}
+    <div class="line"></div>
+    <div class="center muted">Skema Setoran Disarankan</div>
+    ${receiptRow('Per Hari', rupiah(s.perHari))}
+    ${receiptRow('Per Minggu', rupiah(s.perMinggu))}
+    ${receiptRow('Per Bulan', rupiah(s.perBulan))}
+  `;
+  openReceiptPrint('Struk Program '+g.id, body);
+}
 function viewBuku(){
   const custOptions = STATE.customers.map(c=>`<option value="${c.id}">${c.nama} — ${c.noRekening}</option>`).join('');
   return `
@@ -1633,13 +1709,22 @@ async function saveGoal(){
   };
   STATE.goals.push(g);
   await dbSet('goals', STATE.goals);
+  let awalTx = null;
   if(awal>0){
-    await setorKeGoal(g, awal);
+    awalTx = await setorKeGoal(g, awal);
   }
   addLog(`Program tabungan dibuat: ${namaBarang} (${rupiah(target)}, ${tenorBulan} bln) — ${c.nama}`, 'baru');
-  toast('Program dibuat', `Program "${namaBarang}" untuk ${c.nama} aktif. Skema setoran sudah dihitung otomatis.`);
   closeModal();
   render('program');
+  openModal(`
+    <div class="modal-head"><h3>✅ Program Dibuat</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${namaBarang}</b><br><span>${c.nama} — target ${rupiah(target)}${awal>0?` (setoran awal ${rupiah(awal)})`:''}</span></div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${awalTx
+      ? `<button class="btn btn-primary" onclick="printReceipt('${awalTx.id}')">🖨️ Cetak Struk</button>`
+      : `<button class="btn btn-primary" onclick="printProgramReceipt('${g.id}')">🖨️ Cetak Struk</button>`}</div>
+  `);
 }
 
 /* ---------- Setor ke program ---------- */
@@ -1913,9 +1998,15 @@ async function saveNewTitipan(){
   STATE.titipan.push(t);
   await dbSet('titipan', [t]);
   addLog(`Titipan barang baru: ${nama} (${c?c.nama:''}) — dana talangan ${rupiah(pinjaman)}`, 'info');
-  toast('Titipan dicatat', `${nama} — dana talangan ${rupiah(pinjaman)} sudah tercatat.`);
   closeModal();
   render('titipan');
+  openModal(`
+    <div class="modal-head"><h3>✅ Titipan Dicatat</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(pinjaman)}</b><br><span>Dana talangan — ${nama} (${c?c.nama:''})</span></div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','baru')">🖨️ Cetak Struk</button></div>
+  `);
 }
 
 /* ---------- Bayar jasa penitipan (perpanjang) ---------- */
@@ -1951,9 +2042,15 @@ async function saveBayarJasa(id){
   await dbSet('titipan', [t]);
   const c = STATE.customers.find(x=>x.id===t.customerId);
   addLog(`Jasa penitipan dibayar: ${t.namaBarang} (${c?c.nama:''}) — ${rupiah(total)} untuk ${bulan} bulan`, 'setor');
-  toast('Pembayaran tercatat', `Jasa penitipan ${rupiah(total)} sudah tercatat, jatuh tempo diperpanjang.`);
   closeModal();
   render('titipan');
+  openModal(`
+    <div class="modal-head"><h3>✅ Pembayaran Tercatat</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(total)}</b><br><span>Jasa penitipan ${bulan} bulan — ${t.namaBarang} (${c?c.nama:''})</span></div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','jasa',{bulan:${bulan}, total:${total}})">🖨️ Cetak Struk</button></div>
+  `);
 }
 
 /* ---------- Tebus barang (lunasi dana talangan) ---------- */
@@ -1985,9 +2082,15 @@ async function saveTebus(id, totalTebus){
   await dbSet('titipan', [t]);
   const c = STATE.customers.find(x=>x.id===t.customerId);
   addLog(`Barang ditebus: ${t.namaBarang} (${c?c.nama:''}) — total ${rupiah(totalTebus)}`, 'tarik');
-  toast('Barang ditebus', `${t.namaBarang} sudah ditebus dan dikembalikan ke nasabah.`);
   closeModal();
   render('titipan');
+  openModal(`
+    <div class="modal-head"><h3>✅ Barang Ditebus</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(totalTebus)}</b><br><span>${t.namaBarang} — ${c?c.nama:''}</span></div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','tebus',{total:${totalTebus}})">🖨️ Cetak Struk</button></div>
+  `);
 }
 
 /* ---------- Rincian & lelang (kalau lewat jatuh tempo & tidak ditebus) ---------- */
@@ -2042,9 +2145,16 @@ async function saveLelang(id){
   const c = STATE.customers.find(x=>x.id===t.customerId);
   const sisaHakNasabah = Math.max(0, harga - t.pinjaman);
   addLog(`Barang dilelang: ${t.namaBarang} (${c?c.nama:''}) — terjual ${rupiah(harga)}`, 'info');
-  toast('Ditandai terjual', sisaHakNasabah>0 ? `Sisa hak nasabah dari hasil jual: ${rupiah(sisaHakNasabah)} — pastikan dikembalikan.` : 'Barang sudah ditandai terjual.');
   closeModal();
   render('titipan');
+  openModal(`
+    <div class="modal-head"><h3>✅ Ditandai Terjual</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(harga)}</b><br><span>${t.namaBarang} — ${c?c.nama:''}</span></div></div>
+      ${sisaHakNasabah>0 ? `<div class="login-hint">Sisa hak nasabah dari hasil jual: <b>${rupiah(sisaHakNasabah)}</b> — pastikan dikembalikan.</div>` : ''}
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','lelang',{harga:${harga}})">🖨️ Cetak Struk</button></div>
+  `);
 }
 async function deleteTitipan(id){
   const t = STATE.titipan.find(x=>x.id===id);
