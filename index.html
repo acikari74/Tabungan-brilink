@@ -1159,15 +1159,16 @@ function viewDetailNasabah(id){
     <div class="panel">
       <div class="panel-head"><h3>Mutasi Rekening</h3><span class="pill gray">${txs.length} transaksi</span></div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Tanggal</th><th>Jenis</th><th>Debit</th><th>Kredit</th><th>Saldo</th><th>Keterangan</th></tr></thead>
+        <thead><tr><th>Tanggal</th><th>Jenis</th><th>Debit</th><th>Kredit</th><th>Saldo</th><th>Keterangan</th><th class="no-print">Cetak</th></tr></thead>
         <tbody>${txs.length? txs.map(t=>`
           <tr><td>${fmtDate(t.date)}<br><span style="color:var(--muted); font-size:11px;">${fmtTime(t.date)}</span></td>
           <td><span class="pill ${t.type==='setor'?'green':t.type==='tarik'?'red':'gray'}">${t.type==='setor'?'Setor':t.type==='tarik'?'Tarik':'Koreksi'}</span></td>
           <td style="color:var(--red);">${t.type==='tarik'?rupiah(t.amount):'—'}</td>
           <td style="color:var(--green);">${t.type==='setor'?rupiah(t.amount):(t.type==='koreksi' && t.amount>=0? rupiah(t.amount):'—')}</td>
           <td class="mono">${rupiah(t.saldoSesudah)}</td>
-          <td style="color:var(--muted); font-size:12px;">${t.keterangan}</td></tr>
-        `).join('') : `<tr><td colspan="6"><div class="empty-state">Belum ada mutasi transaksi</div></td></tr>`}</tbody>
+          <td style="color:var(--muted); font-size:12px;">${t.keterangan}</td>
+          <td class="no-print"><button class="btn btn-outline btn-sm" style="padding:6px 10px;" onclick="printReceipt('${t.id}')" title="Cetak struk">🖨️</button></td></tr>
+        `).join('') : `<tr><td colspan="7"><div class="empty-state">Belum ada mutasi transaksi</div></td></tr>`}</tbody>
       </table></div>
     </div>
   </div>`;
@@ -1210,19 +1211,20 @@ function viewTransaksi(){
   <div class="panel">
     <div class="panel-head"><h3>Riwayat Transaksi Terbaru</h3></div>
     <div class="table-wrap"><table>
-      <thead><tr><th>Tanggal/Jam</th><th>Nasabah</th><th>Jenis</th><th>Nominal</th><th>Staff</th><th>ID Transaksi</th></tr></thead>
+      <thead><tr><th>Tanggal/Jam</th><th>Nasabah</th><th>Jenis</th><th>Nominal</th><th>Staff</th><th>ID Transaksi</th><th class="no-print">Cetak</th></tr></thead>
       <tbody>${txRows([...STATE.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,30))}</tbody>
     </table></div>
   </div>`;
 }
 function txRows(list){
-  if(!list.length) return `<tr><td colspan="6"><div class="empty-state">Belum ada transaksi</div></td></tr>`;
+  if(!list.length) return `<tr><td colspan="7"><div class="empty-state">Belum ada transaksi</div></td></tr>`;
   return list.map(t=>{
     const c = STATE.customers.find(x=>x.id===t.customerId);
     return `<tr><td>${fmtDate(t.date)} · ${fmtTime(t.date)}</td><td>${c?c.nama:'—'}</td>
       <td><span class="pill ${t.type==='setor'?'green':t.type==='tarik'?'red':'gray'}">${t.type==='setor'?'Setor Tunai':t.type==='tarik'?'Tarik Tunai':'Koreksi'}</span></td>
       <td style="font-weight:700; color:${t.type==='setor'?'var(--green)':'var(--red)'};">${t.type==='setor'?'+':'-'}${rupiah(t.amount)}</td>
-      <td>${t.staff}</td><td class="mono" style="font-size:11px; color:var(--muted);">${t.id}</td></tr>`;
+      <td>${t.staff}</td><td class="mono" style="font-size:11px; color:var(--muted);">${t.id}</td>
+      <td class="no-print"><button class="btn btn-outline btn-sm" style="padding:6px 10px;" onclick="printReceipt('${t.id}')" title="Cetak struk">🖨️</button></td></tr>`;
   }).join('');
 }
 function openTransaksiFor(customerId){ render('transaksi'); setTimeout(()=>openTxModal('setor', customerId), 50); }
@@ -1251,10 +1253,19 @@ async function confirmTx(type){
   const c = STATE.customers.find(x=>x.id===cid);
   if(!amount || amount<=0){ toast('Nominal tidak valid', 'Masukkan nominal lebih dari 0.', true); return; }
   if(type==='tarik' && amount>c.saldo){ toast('Saldo tidak cukup', `Saldo ${c.nama} hanya ${rupiah(c.saldo)}.`, true); return; }
-  await logTransaction(c, type, amount, note || (type==='setor'?'Setor tunai':type==='tarik'?'Tarik tunai':'Koreksi saldo'));
-  toast('Transaksi berhasil', `${type==='setor'?'Setoran':type==='tarik'?'Penarikan':'Koreksi'} ${rupiah(amount)} untuk ${c.nama}.`);
+  const tx = await logTransaction(c, type, amount, note || (type==='setor'?'Setor tunai':type==='tarik'?'Tarik tunai':'Koreksi saldo'));
   closeModal();
   render(STATE.view==='detail-nasabah'?'detail-nasabah':'transaksi');
+  const typeLabel = type==='setor'?'Setoran':type==='tarik'?'Penarikan':'Koreksi';
+  openModal(`
+    <div class="modal-head"><h3>✅ Transaksi Berhasil</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(amount)}</b><br><span>${typeLabel} — ${c.nama}</span></div></div>
+      <div class="sim-row"><span>Saldo Sekarang</span><b>${rupiah(c.saldo)}</b></div>
+      <div class="sim-row"><span>No. Transaksi</span><b class="mono" style="font-size:12px;">${tx.id}</b></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printReceipt('${tx.id}')">🖨️ Cetak Struk</button></div>
+  `);
 }
 async function logTransaction(c, type, amount, note){
   const before = c.saldo;
@@ -1270,6 +1281,57 @@ async function logTransaction(c, type, amount, note){
   await dbSet('customers', STATE.customers);
   await dbSet('transactions', STATE.transactions);
   addLog(`${type==='setor'?'Setor':type==='tarik'?'Tarik':'Koreksi'} ${rupiah(amount)} — ${c.nama} (${tx.id})`, type);
+  return tx;
+}
+
+/* ============================= CETAK STRUK (80mm thermal) ============================= */
+function printReceipt(txId){
+  const t = STATE.transactions.find(x=>x.id===txId);
+  if(!t){ toast('Struk tidak ditemukan', 'Transaksi ini tidak ditemukan.', true); return; }
+  const c = STATE.customers.find(x=>x.id===t.customerId);
+  const typeLabel = t.type==='setor' ? 'SETOR TUNAI' : t.type==='tarik' ? 'TARIK TUNAI' : 'KOREKSI SALDO';
+  const sign = t.type==='tarik' ? '-' : '+';
+  const win = window.open('', '_blank', 'width=380,height=640');
+  if(!win){ toast('Gagal membuka jendela cetak', 'Izinkan pop-up untuk situs ini di browser Anda.', true); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Struk ${t.id}</title>
+  <style>
+    @page{ size:80mm auto; margin:0; }
+    *{ box-sizing:border-box; }
+    body{ width:80mm; margin:0; padding:5mm 4mm; font-family:'Courier New',Courier,monospace; font-size:12px; line-height:1.5; color:#000; }
+    .center{ text-align:center; }
+    .b{ font-weight:700; }
+    .big{ font-size:16px; font-weight:700; }
+    .muted{ font-size:10.5px; color:#333; }
+    .line{ border-top:1px dashed #000; margin:8px 0; }
+    .row{ display:flex; justify-content:space-between; gap:10px; margin:3px 0; }
+    .row span:first-child{ color:#333; }
+    .foot{ margin-top:10px; }
+  </style></head>
+  <body>
+    <div class="center b" style="font-size:14px;">${STATE.settings.name}</div>
+    <div class="center muted">${STATE.settings.address||''}</div>
+    <div class="center muted">${STATE.settings.wa?('WA: '+STATE.settings.wa):''}</div>
+    <div class="line"></div>
+    <div class="center b">${typeLabel}</div>
+    <div class="line"></div>
+    <div class="row"><span>Tanggal</span><span>${fmtDate(t.date)} ${fmtTime(t.date)}</span></div>
+    <div class="row"><span>No. Transaksi</span><span>${t.id}</span></div>
+    <div class="row"><span>Staff</span><span>${t.staff}</span></div>
+    <div class="line"></div>
+    <div class="row"><span>Nasabah</span><span class="b">${c?c.nama:'—'}</span></div>
+    <div class="row"><span>No. Rekening</span><span>${c?c.noRekening:'—'}</span></div>
+    <div class="line"></div>
+    <div class="center muted">Nominal</div>
+    <div class="center big">${sign}${rupiah(t.amount)}</div>
+    <div class="line"></div>
+    <div class="row"><span>Saldo Sebelum</span><span>${rupiah(t.saldoSebelum)}</span></div>
+    <div class="row"><span>Saldo Sesudah</span><span class="b">${rupiah(t.saldoSesudah)}</span></div>
+    ${t.keterangan ? `<div class="line"></div><div class="muted">Ket: ${t.keterangan}</div>` : ''}
+    <div class="line"></div>
+    <div class="center foot muted">Struk ini adalah bukti transaksi<br>yang sah. Terima kasih.</div>
+  </body></html>`);
+  win.document.close();
+  win.onload = ()=>{ win.focus(); win.print(); };
 }
 
 /* ============================= BUKU TABUNGAN (GLOBAL) ============================= */
