@@ -2148,14 +2148,17 @@ function openTebus(id){
   if(!t) return;
   const c = STATE.customers.find(x=>x.id===t.customerId);
   const sisaHari = titipanSisaHari(t);
+  const sisaJasa = Math.max(0, (t.totalJasa||0) - (t.totalJasaDibayar||0));
+  const totalAwal = t.pinjaman + sisaJasa;
   openModal(`
     <div class="modal-head"><h3>Tebus Barang</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="login-hint">${t.namaBarang} — ${c?c.nama:''}</div>
       <div class="sim-row"><span>Dana Talangan (pokok)</span><b>${rupiah(t.pinjaman)}</b></div>
-      ${sisaHari<0 ? `<div class="login-hint" style="margin-top:10px; border-color:var(--red); color:var(--red);">Sudah lewat jatuh tempo ${Math.abs(sisaHari)} hari. Kalau ada jasa tertunggak yang perlu ditambahkan, isi di bawah.</div>` : ''}
-      <div class="field" style="margin-top:12px;"><label>Jasa Tertunggak (Rp, opsional)</label><input id="tb-jasa-tunggak" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this); document.getElementById('tb-total').textContent = rupiahJS(${t.pinjaman} + getMoneyInput('tb-jasa-tunggak'));"></div>
-      <div class="sim-row big"><div><b id="tb-total">${rupiah(t.pinjaman)}</b><br><span>Total yang harus dibayar nasabah untuk menebus</span></div></div>
+      <div class="sim-row"><span>Biaya Jasa Titip (belum dibayar)</span><b>${rupiah(sisaJasa)}</b></div>
+      ${sisaHari<0 ? `<div class="login-hint" style="margin-top:10px; border-color:var(--red); color:var(--red);">Sudah lewat jatuh tempo ${Math.abs(sisaHari)} hari. Kalau ada tambahan jasa perpanjangan yang perlu ditambahkan, isi di bawah.</div>` : ''}
+      <div class="field" style="margin-top:12px;"><label>Tambahan Jasa Lewat Tempo (Rp, opsional)</label><input id="tb-jasa-tunggak" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this); document.getElementById('tb-total').textContent = rupiahJS(${totalAwal} + getMoneyInput('tb-jasa-tunggak'));"></div>
+      <div class="sim-row big"><div><b id="tb-total">${rupiah(totalAwal)}</b><br><span>Total yang harus dibayar nasabah untuk menebus</span></div></div>
       <div class="login-hint" style="margin-top:10px;">Setelah dikonfirmasi, barang dianggap sudah dikembalikan ke nasabah dan status titipan menjadi "Sudah Ditebus".</div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveTebus('${t.id}')">Konfirmasi Tebus</button></div>
@@ -2165,11 +2168,13 @@ function rupiahJS(n){ return rupiah(n); }
 async function saveTebus(id){
   const t = STATE.titipan.find(x=>x.id===id);
   if(!t) return;
-  const jasaTunggak = getMoneyInput('tb-jasa-tunggak');
-  const totalTebus = t.pinjaman + jasaTunggak;
+  const sisaJasa = Math.max(0, (t.totalJasa||0) - (t.totalJasaDibayar||0));
+  const jasaTambahan = getMoneyInput('tb-jasa-tunggak');
+  const totalJasaDibayarSekarang = sisaJasa + jasaTambahan;
+  const totalTebus = t.pinjaman + totalJasaDibayarSekarang;
   t.status = 'ditebus';
   t.riwayat = t.riwayat||[];
-  if(jasaTunggak>0) t.totalJasaDibayar = (t.totalJasaDibayar||0) + jasaTunggak;
+  if(totalJasaDibayarSekarang>0) t.totalJasaDibayar = (t.totalJasaDibayar||0) + totalJasaDibayarSekarang;
   t.riwayat.push({ id: uid('R'), type:'tebus', amount: totalTebus, date: new Date().toISOString() });
   await dbSet('titipan', [t]);
   const c = STATE.customers.find(x=>x.id===t.customerId);
@@ -2180,6 +2185,8 @@ async function saveTebus(id){
     <div class="modal-head"><h3>✅ Barang Ditebus</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(totalTebus)}</b><br><span>${t.namaBarang} — ${c?c.nama:''}</span></div></div>
+      <div class="sim-row"><span>Dana Talangan (pokok)</span><b>${rupiah(t.pinjaman)}</b></div>
+      <div class="sim-row"><span>Biaya Jasa Titip</span><b>${rupiah(totalJasaDibayarSekarang)}</b></div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','tebus',{total:${totalTebus}})">🖨️ Cetak Struk</button></div>
   `);
