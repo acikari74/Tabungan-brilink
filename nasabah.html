@@ -24,43 +24,49 @@
     --text-main:#0F172A; --text-muted:#64748B; --border:#F1F5F9;
   }
   *{box-sizing:border-box;}
-  body{margin:0; font-family:'DM Sans',sans-serif; background:#EEF1F6; color:var(--text-main); -webkit-tap-highlight-color:transparent;}
+  body{margin:0; font-family:'DM Sans',sans-serif; background:#EEF1F6; color:var(--text-main); -webkit-tap-highlight-color:transparent; perspective:1200px;}
   h1,h2,h3,h4,.heading{font-family:'Plus Jakarta Sans',sans-serif; letter-spacing:-0.02em;}
   .app{max-width:448px; margin:0 auto; width:100%; min-height:100vh; background:var(--bg); position:relative; padding-bottom:100px; overflow-x:hidden; box-shadow:0 0 80px rgba(15,23,42,.12);}
   .hidden{display:none !important;}
   button{font-family:inherit; cursor:pointer;}
   input{font-family:inherit;}
-  .btn-primary{background:var(--primary); color:#fff; font-weight:700; border:none; border-radius:999px; padding:16px; font-size:15px; transition:transform .15s, background .15s; box-shadow:0 10px 24px -8px rgba(249,115,22,.55);}
-  .btn-primary:active{transform:scale(.96); background:var(--primary-hover);}
+  .btn-primary{background:linear-gradient(180deg,#FB923C,var(--primary) 55%,var(--primary-hover)); color:#fff; font-weight:700; border:none; border-radius:999px; padding:16px; font-size:15px; transition:transform .12s, box-shadow .12s; box-shadow:0 1px 0 rgba(255,255,255,.35) inset, 0 -3px 6px rgba(0,0,0,.12) inset, 0 12px 22px -8px rgba(249,115,22,.55);}
+  .btn-primary:active{transform:translateY(2px) scale(.98); box-shadow:0 1px 0 rgba(255,255,255,.2) inset, 0 -1px 3px rgba(0,0,0,.1) inset, 0 4px 10px -6px rgba(249,115,22,.5);}
   .btn-primary:disabled{opacity:.5;}
-  .btn-outline{background:#fff; color:var(--text-main); font-weight:700; border:1.5px solid var(--border); border-radius:999px; padding:14px; font-size:14px; transition:transform .15s;}
-  .btn-outline:active{transform:scale(.96);}
-  .field-input{width:100%; padding:15px 17px; border-radius:14px; border:1.5px solid var(--border); background:#F8FAFC; font-size:15px; color:var(--text-main); outline:none; transition:border-color .15s, background .15s, box-shadow .15s;}
+  .btn-outline{background:linear-gradient(180deg,#fff,#F8FAFC); color:var(--text-main); font-weight:700; border:1.5px solid var(--border); border-radius:999px; padding:14px; font-size:14px; transition:transform .12s, box-shadow .12s; box-shadow:0 1px 0 #fff inset, 0 3px 8px rgba(15,23,42,.06);}
+  .btn-outline:active{transform:translateY(1px) scale(.98); box-shadow:0 1px 3px rgba(15,23,42,.08) inset;}
+  .field-input{width:100%; padding:15px 17px; border-radius:14px; border:1.5px solid var(--border); background:#F8FAFC; font-size:15px; color:var(--text-main); outline:none; transition:border-color .15s, background .15s, box-shadow .15s; box-shadow:0 1px 3px rgba(15,23,42,.04) inset;}
   .field-input:focus{border-color:var(--primary); background:#fff; box-shadow:0 0 0 4px rgba(249,115,22,.1);}
-  .card{background:var(--surface); border-radius:24px; border:1px solid #F1F5F9; box-shadow:0 10px 34px rgba(15,23,42,.05);}
+  .card{background:linear-gradient(180deg,#fff,#FCFDFE); border-radius:24px; border:1px solid #F1F5F9; box-shadow:0 1px 0 #fff inset, 0 14px 34px -10px rgba(15,23,42,.09), 0 3px 8px rgba(15,23,42,.04);}
   .shell{padding:0 24px;}
   .fade-in{animation:fadeSlideUp .35s ease both;}
   @keyframes fadeSlideUp{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:translateY(0);}}
   .spin{width:18px; height:18px; border:2.5px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; display:inline-block;}
   @keyframes spin{to{transform:rotate(360deg);}}
-  .bottom-nav{position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:448px; background:rgba(255,255,255,.92); backdrop-filter:blur(16px); border-top:1px solid var(--border); padding:10px 18px calc(10px + env(safe-area-inset-bottom)); display:flex; justify-content:space-between; align-items:center; z-index:50; border-radius:24px 24px 0 0; box-shadow:0 -10px 30px rgba(15,23,42,.05);}
+  .bottom-nav{position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:448px; background:rgba(255,255,255,.92); backdrop-filter:blur(16px); border-top:1px solid var(--border); padding:10px 18px calc(10px + env(safe-area-inset-bottom)); display:flex; justify-content:space-between; align-items:center; z-index:50; border-radius:24px 24px 0 0; box-shadow:0 1px 0 #fff inset, 0 -10px 30px rgba(15,23,42,.06);}
   .nav-btn{display:flex; flex-direction:column; align-items:center; gap:5px; color:var(--text-muted); background:none; border:none; font-size:10px; font-weight:700; flex:1; padding:6px 4px; transition:color .15s;}
-  .nav-btn .nav-ic{width:34px; height:26px; border-radius:12px; display:flex; align-items:center; justify-content:center; transition:background .2s;}
+  .nav-btn .nav-ic{width:34px; height:26px; border-radius:12px; display:flex; align-items:center; justify-content:center; transition:background .25s, box-shadow .25s, transform .15s;}
   .nav-btn.active{color:var(--primary);}
-  .nav-btn.active .nav-ic{background:rgba(249,115,22,.12);}
-  .member-card{position:relative; border-radius:26px; padding:26px; overflow:hidden; background:linear-gradient(135deg,#3730A3,#1E1B4B 65%); color:#fff; box-shadow:0 24px 44px -14px rgba(30,27,75,.5);}
+  .nav-btn.active .nav-ic{background:linear-gradient(180deg,#FFEDD9,#FFE0BD); box-shadow:0 1px 0 #fff inset, 0 4px 10px -3px rgba(249,115,22,.45); transform:translateY(-2px);}
+  .nav-btn:active .nav-ic{transform:scale(.9);}
+  .member-card{position:relative; border-radius:26px; padding:26px; overflow:hidden; background:linear-gradient(135deg,#4338CA,#1E1B4B 65%); color:#fff;
+    box-shadow:0 2px 0 rgba(255,255,255,.12) inset, 0 28px 50px -16px rgba(30,27,75,.55), 0 10px 20px -10px rgba(30,27,75,.4);
+    transform-style:preserve-3d; will-change:transform; transition:transform .12s ease-out;}
+  .member-card::before{content:''; position:absolute; inset:0; background:linear-gradient(120deg,rgba(255,255,255,.14),transparent 40%); pointer-events:none;}
   .member-card .orb{position:absolute; border-radius:50%; filter:blur(40px); opacity:.55;}
   .pill{padding:4px 11px; border-radius:20px; font-size:10.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;}
   .pill-green{background:rgba(16,185,129,.14); color:var(--success);}
   .pill-red{background:rgba(239,68,68,.12); color:var(--danger);}
   .pill-gray{background:#F1F5F9; color:var(--text-muted);}
-  .progress-track{width:100%; height:9px; background:#F1F5F9; border-radius:999px; overflow:hidden;}
-  .progress-fill{height:100%; background:linear-gradient(90deg,var(--primary),#FB923C); border-radius:999px; transition:width .6s ease;}
+  .progress-track{width:100%; height:10px; background:#EDF0F5; border-radius:999px; overflow:hidden; box-shadow:0 2px 4px rgba(15,23,42,.08) inset, 0 -1px 0 #fff inset;}
+  .progress-fill{height:100%; background:linear-gradient(180deg,#FDBA74,var(--primary) 55%,var(--primary-hover)); border-radius:999px; transition:width .6s ease; box-shadow:0 1px 0 rgba(255,255,255,.4) inset;}
   .tab-btn{flex:1; text-align:center; padding:10px; border-radius:999px; font-weight:700; font-size:13px; border:none; background:none; color:var(--text-muted); transition:.15s;}
   .tab-btn.active{background:var(--secondary); color:#fff;}
   .empty-box{text-align:center; padding:40px 20px; color:var(--text-muted);}
   .empty-box img{width:120px; height:120px; object-fit:cover; border-radius:20px; margin:0 auto 16px; opacity:.85;}
   .pin-dot{width:16px; height:16px; border-radius:50%; border:2px solid var(--secondary); transition:.15s;}
+  .badge-3d{ box-shadow:0 1px 0 rgba(255,255,255,.5) inset, 0 -3px 5px rgba(0,0,0,.12) inset, 0 6px 14px -5px rgba(15,23,42,.35); }
+  .badge-3d-light{ box-shadow:0 1px 0 #fff inset, 0 -2px 4px rgba(15,23,42,.05) inset, 0 5px 12px -6px rgba(15,23,42,.18); }
   .pin-dot.filled{background:var(--primary); border-color:var(--primary);}
 </style>
 </head>
@@ -82,7 +88,7 @@
       <div style="position:absolute; width:220px; height:220px; background:#F97316; border-radius:50%; filter:blur(60px); opacity:.45; top:-80px; right:-60px;"></div>
       <div style="position:absolute; width:140px; height:140px; background:#6366F1; border-radius:50%; filter:blur(50px); opacity:.5; bottom:-50px; left:-40px;"></div>
       <div style="position:relative; text-align:center; color:#fff;">
-        <div style="width:58px; height:58px; border-radius:18px; background:rgba(255,255,255,.12); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; border:1px solid rgba(255,255,255,.15);">
+        <div class="badge-3d" style="width:58px; height:58px; border-radius:18px; background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.08)); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; border:1px solid rgba(255,255,255,.18);">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
         </div>
         <h1 style="font-size:22px; font-weight:800; margin:0;" id="login-agent-name">Tabungan Nasabah</h1>
@@ -110,7 +116,7 @@
     <div style="position:relative; background:linear-gradient(160deg,#3730A3,#1E1B4B 70%); padding:56px 24px 64px; overflow:hidden; border-radius:0 0 36px 36px;">
       <div style="position:absolute; width:200px; height:200px; background:#F97316; border-radius:50%; filter:blur(60px); opacity:.4; top:-70px; right:-50px;"></div>
       <div style="position:relative; text-align:center; color:#fff;">
-        <div style="width:58px; height:58px; border-radius:18px; background:rgba(255,255,255,.12); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; border:1px solid rgba(255,255,255,.15);">
+        <div class="badge-3d" style="width:58px; height:58px; border-radius:18px; background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.08)); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; border:1px solid rgba(255,255,255,.18);">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
         <h1 style="font-size:20px; font-weight:800; margin:0;">Buat PIN Anda</h1>
@@ -138,7 +144,7 @@
         <div style="font-size:11.5px; color:var(--text-muted);">Halo,</div>
         <div style="font-weight:800; font-size:16px;" id="hdr-name">—</div>
       </div>
-      <div style="width:42px; height:42px; border-radius:14px; overflow:hidden; background:var(--secondary); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:13px;" id="hdr-avatar">—</div>
+      <div class="badge-3d" style="width:42px; height:42px; border-radius:14px; overflow:hidden; background:linear-gradient(160deg,#4338CA,var(--secondary)); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:13px;" id="hdr-avatar">—</div>
     </header>
 
     <div id="page-home" class="shell fade-in"></div>
@@ -356,7 +362,7 @@ function renderHome(){
               </button>
             </div>
           </div>
-          <div style="width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center;">
+          <div class="badge-3d" style="width:34px; height:34px; border-radius:10px; background:linear-gradient(160deg,rgba(255,255,255,.24),rgba(255,255,255,.08)); display:flex; align-items:center; justify-content:center;">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
           </div>
         </div>
@@ -384,8 +390,30 @@ function renderHome(){
       ${recent.length ? recent.map(txRow).join('') : `<div class="empty-box" style="padding:24px;">Belum ada transaksi</div>`}
     </div>
   `;
+  initCardTilt();
 }
 function toggleBalance(){ STATE.showBalance = !STATE.showBalance; renderCurrentTab(); }
+
+/* ---------- Efek kartu 3D: miring mengikuti jari/mouse, kembali normal saat lepas ---------- */
+function initCardTilt(){
+  const card = document.querySelector('.member-card');
+  if(!card) return;
+  const MAX_TILT = 8;
+  function applyTilt(clientX, clientY){
+    const r = card.getBoundingClientRect();
+    const px = (clientX - r.left) / r.width;   // 0..1
+    const py = (clientY - r.top) / r.height;   // 0..1
+    const rotY = (px - 0.5) * MAX_TILT * 2;
+    const rotX = (0.5 - py) * MAX_TILT * 2;
+    card.style.transform = `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.015)`;
+  }
+  function resetTilt(){ card.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)'; }
+  card.addEventListener('pointermove', (e)=>{ if(e.pointerType==='mouse') applyTilt(e.clientX, e.clientY); });
+  card.addEventListener('pointerleave', resetTilt);
+  card.addEventListener('touchmove', (e)=>{ if(e.touches[0]) applyTilt(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+  card.addEventListener('touchend', resetTilt);
+  card.addEventListener('touchcancel', resetTilt);
+}
 
 function txRow(t){
   const isSetor = t.type==='setor';
@@ -394,7 +422,7 @@ function txRow(t){
   const bg = isSetor ? 'rgba(16,185,129,.1)' : isTarik ? 'rgba(239,68,68,.1)' : '#F1F5F9';
   return `
   <div style="display:flex; align-items:center; gap:12px; padding:12px 14px;">
-    <div style="width:38px; height:38px; border-radius:12px; background:${bg}; color:${color}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+    <div class="badge-3d-light" style="width:38px; height:38px; border-radius:12px; background:${bg}; color:${color}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
       ${isSetor ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>'
       : isTarik ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>'
       : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M4 10a8 8 0 0114-4.9M20 14a8 8 0 01-14 4.9"/></svg>'}
@@ -464,7 +492,7 @@ function goalCard(g){
 
 /* ---------- TITIPAN BARANG (read-only) ---------- */
 const TITIPAN_CATS = { perhiasan:'💍', elektronik:'📱', kendaraan:'🏍️', dokumen:'📄', lain:'📦' };
-function titipanJatuhTempo(t){ const d = new Date(t.mulai); d.setMonth(d.getMonth()+t.tenorBulan); return d; }
+function titipanJatuhTempo(t){ const d = new Date(t.mulai); d.setDate(d.getDate()+t.tenorHari); return d; }
 function titipanSisaHari(t){ return Math.ceil((titipanJatuhTempo(t) - new Date())/86400000); }
 function titipanStatus(t){
   if(t.status==='ditebus') return {text:'Sudah Ditebus', cls:'pill-green'};
@@ -489,7 +517,7 @@ function titipanCardView(t){
   <div class="card" style="padding:20px; margin-bottom:14px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
       <div style="display:flex; align-items:center; gap:10px;">
-        <div style="width:38px; height:38px; border-radius:12px; background:#F8FAFC; display:flex; align-items:center; justify-content:center; font-size:17px;">${TITIPAN_CATS[t.kategori]||'📦'}</div>
+        <div class="badge-3d-light" style="width:38px; height:38px; border-radius:12px; background:linear-gradient(160deg,#fff,#F1F5F9); display:flex; align-items:center; justify-content:center; font-size:17px;">${TITIPAN_CATS[t.kategori]||'📦'}</div>
         <b style="font-size:14px;">${t.namaBarang}</b>
       </div>
       <span class="pill ${st.cls}">${st.text}</span>
@@ -508,7 +536,7 @@ function renderProfil(){
   document.getElementById('page-profil').innerHTML = `
     <h2 style="font-size:19px; margin:14px 0 16px;">Profil</h2>
     <div class="card" style="padding:22px; text-align:center; margin-bottom:16px;">
-      <div style="width:66px; height:66px; border-radius:20px; background:var(--secondary); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; margin:0 auto 12px;">${initials(c.nama)}</div>
+      <div class="badge-3d" style="width:66px; height:66px; border-radius:20px; background:linear-gradient(160deg,#4338CA,var(--secondary)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; margin:0 auto 12px;">${initials(c.nama)}</div>
       <div style="font-weight:800; font-size:16px;">${c.nama}</div>
       <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${c.noRekening} • Member ${c.noMember}</div>
     </div>
