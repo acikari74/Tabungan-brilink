@@ -1447,7 +1447,7 @@ function printTitipanReceipt(titipanId, eventType, extra){
     ${amountBlock}
     <div class="line"></div>
     ${receiptRow('Dana Talangan', rupiah(t.pinjaman))}
-    ${eventType==='baru' ? receiptRow('Biaya Jasa', rupiah(t.biayaJasa), true) : ''}
+    ${eventType==='baru' ? receiptRow('Total Biaya Jasa', rupiah(t.totalJasa), true) : ''}
     ${eventType!=='tebus'&&eventType!=='lelang' ? receiptRow('Jatuh Tempo', fmtDate(titipanJatuhTempo(t))) : ''}
   `;
   openReceiptPrint('Struk Titipan '+t.id, body);
@@ -1905,10 +1905,11 @@ async function deleteGoal(goalId){
 /* ============================= TITIPAN BARANG (Rahn Syariah — tanpa bunga) ============================= */
 // Konsep: nasabah menitipkan barang berharga sebagai jaminan, agen memberi
 // dana talangan (pinjaman). Bukan bunga — nasabah membayar BIAYA JASA
-// PENITIPAN (ijarah) untuk keamanan & penyimpanan barangnya, diisi manual
-// oleh staff sesuai kesepakatan, bukan dari rumus otomatis. Kalau lewat
-// jatuh tempo dan tidak ditebus/diperpanjang, barang boleh dijual (lelang)
-// untuk menutup dana talangan — sisa hasil jual jadi hak nasabah.
+// PENITIPAN (ijarah) untuk keamanan & penyimpanan barangnya. Staff cukup
+// isi satu angka "biaya jasa per 14 hari", lalu sistem otomatis kasih tahu
+// totalnya untuk tiap pilihan jangka waktu (14 hari, 1 bulan, dst) secara
+// proporsional. Kalau lewat jatuh tempo dan tidak ditebus/diperpanjang,
+// barang boleh dijual (lelang) — sisa hasil jual jadi hak nasabah.
 const TITIPAN_CATS = {
   perhiasan:  { label:'Perhiasan',       emoji:'💍' },
   elektronik: { label:'Elektronik',      emoji:'📱' },
@@ -1989,7 +1990,7 @@ function titipanCard(t){
       <span class="pill ${st.cls}">${st.text}</span>
     </div>
     <div class="goal-nums"><span style="color:var(--muted);">Dana Talangan</span><b>${rupiah(t.pinjaman)}</b></div>
-    <div class="goal-nums" style="margin-bottom:14px;"><span style="color:var(--muted);">Biaya Jasa (${titipanTenorLabel(t.tenorHari)})</span><b style="color:var(--gold);">${rupiah(t.biayaJasa)}</b></div>
+    <div class="goal-nums" style="margin-bottom:14px;"><span style="color:var(--muted);">Total Biaya Jasa (${titipanTenorLabel(t.tenorHari)})</span><b style="color:var(--gold);">${rupiah(t.totalJasa)}</b></div>
     <div class="goal-foot">
       ${isOpen
         ? `<button class="btn btn-green btn-sm" onclick="openBayarJasa('${t.id}')">Bayar Jasa</button>
@@ -2018,32 +2019,45 @@ function openAddTitipan(){
       </div>
       <div class="field"><label>Nama/Deskripsi Barang</label><input id="tt-nama" placeholder="Contoh: Kalung emas 10 gram"></div>
       <div class="field"><label>Dana Talangan Diberikan (Rp)*</label><input id="tt-pinjaman" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this)" style="font-weight:700;"></div>
+      <div class="field"><label>Biaya Jasa Penitipan / 14 Hari (Rp)*</label><input id="tt-jasa14" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this); tampilkanReferensiJasa();" style="font-weight:700;"></div>
+      <div id="tt-referensi" class="login-hint"></div>
       <div class="field"><label>Jangka Waktu</label>
-        <select id="tt-tenor">
+        <select id="tt-tenor" onchange="tampilkanReferensiJasa()">
           ${TITIPAN_TENOR_OPTIONS.map(o=>`<option value="${o.hari}" ${o.hari===120?'selected':''}>${o.label}</option>`).join('')}
         </select>
       </div>
-      <div class="field"><label>Biaya Jasa Penitipan (Rp)*</label><input id="tt-jasa" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this)" style="font-weight:700;"></div>
-      <div class="login-hint">Biaya jasa di atas berlaku untuk sepanjang jangka waktu yang dipilih, sesuai kesepakatan dengan nasabah.</div>
       <div class="field"><label>Catatan (opsional)</label><input id="tt-catatan" placeholder="Kondisi barang, kelengkapan, dll"></div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveNewTitipan()">Simpan Titipan</button></div>
   `);
   document.getElementById(`tt-cat-${titipanCatBuffer}`).classList.add('active');
+  tampilkanReferensiJasa();
+}
+function totalJasaUntuk(tarifPer14Hari, hari){ return Math.round((tarifPer14Hari * (hari/14)) / 500) * 500; }
+function tampilkanReferensiJasa(){
+  const el = document.getElementById('tt-referensi');
+  if(!el) return;
+  const tarif = getMoneyInput('tt-jasa14');
+  const tenorEl = document.getElementById('tt-tenor');
+  const tenorHari = tenorEl ? Number(tenorEl.value) : 120;
+  if(!tarif){ el.innerHTML = 'Isi biaya jasa per 14 hari dulu, nanti otomatis muncul perkiraan untuk tiap jangka waktu.'; return; }
+  const baris = TITIPAN_TENOR_OPTIONS.map(o=>`${o.label}: <b${o.hari===tenorHari?' style="color:var(--gold);"':''}>${rupiah(totalJasaUntuk(tarif,o.hari))}</b>`).join(' &nbsp;•&nbsp; ');
+  el.innerHTML = `Perkiraan total biaya jasa: ${baris}`;
 }
 async function saveNewTitipan(){
   const customerId = document.getElementById('tt-customer').value;
   const nama = document.getElementById('tt-nama').value.trim();
   const pinjaman = getMoneyInput('tt-pinjaman');
-  const biayaJasa = getMoneyInput('tt-jasa');
+  const tarifJasaPer14Hari = getMoneyInput('tt-jasa14');
   const tenorHari = Number(document.getElementById('tt-tenor').value);
   const catatan = document.getElementById('tt-catatan').value.trim();
-  if(!customerId || !nama || !pinjaman){ toast('Data belum lengkap', 'Nasabah, nama barang, dan dana talangan wajib diisi.', true); return; }
+  if(!customerId || !nama || !pinjaman || !tarifJasaPer14Hari){ toast('Data belum lengkap', 'Nasabah, nama barang, dana talangan, dan biaya jasa wajib diisi.', true); return; }
   const c = STATE.customers.find(x=>x.id===customerId);
   const tenorLabel = titipanTenorLabel(tenorHari);
+  const totalJasa = totalJasaUntuk(tarifJasaPer14Hari, tenorHari);
   const t = {
     id: uid('TT'), customerId, kategori: titipanCatBuffer, namaBarang: nama,
-    pinjaman, biayaJasa, tenorHari,
+    pinjaman, tarifJasaPer14Hari, totalJasa, tenorHari,
     mulai: new Date().toISOString(), status:'aktif',
     totalJasaDibayar: 0, catatan, riwayat: [],
   };
@@ -2057,7 +2071,7 @@ async function saveNewTitipan(){
     <div class="modal-body">
       <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(pinjaman)}</b><br><span>Dana talangan — ${nama} (${c?c.nama:''})</span></div></div>
       <div class="sim-row"><span>Jangka Waktu</span><b>${tenorLabel}</b></div>
-      <div class="sim-row"><span>Biaya Jasa</span><b style="color:var(--gold);">${rupiah(biayaJasa)}</b></div>
+      <div class="sim-row"><span>Total Biaya Jasa</span><b style="color:var(--gold);">${rupiah(totalJasa)}</b></div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','baru')">🖨️ Cetak Struk</button></div>
   `);
@@ -2071,13 +2085,14 @@ function openBayarJasa(id){
   openModal(`
     <div class="modal-head"><h3>Bayar Jasa Penitipan</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <div class="login-hint">${t.namaBarang} — ${c?c.nama:''}<br>Biaya jasa saat ini: <b>${rupiah(t.biayaJasa)}</b> untuk ${titipanTenorLabel(t.tenorHari)}</div>
+      <div class="login-hint">${t.namaBarang} — ${c?c.nama:''}<br>Biaya jasa per 14 hari: <b>${rupiah(t.tarifJasaPer14Hari)}</b></div>
       <div class="field"><label>Perpanjang Selama</label>
-        <select id="bj-tenor">
-          ${TITIPAN_TENOR_OPTIONS.map(o=>`<option value="${o.hari}">${o.label}</option>`).join('')}
+        <select id="bj-tenor" onchange="const h=Number(this.value); document.getElementById('bj-jasa').value = totalJasaUntuk(${t.tarifJasaPer14Hari}, h).toLocaleString('id-ID');">
+          ${TITIPAN_TENOR_OPTIONS.map(o=>`<option value="${o.hari}" ${o.hari===14?'selected':''}>${o.label}</option>`).join('')}
         </select>
       </div>
-      <div class="field"><label>Biaya Jasa untuk Perpanjangan Ini (Rp)*</label><input id="bj-jasa" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this)" style="font-weight:700;"></div>
+      <div class="field"><label>Biaya Jasa untuk Perpanjangan Ini (Rp)*</label><input id="bj-jasa" type="text" inputmode="numeric" value="${totalJasaUntuk(t.tarifJasaPer14Hari,14).toLocaleString('id-ID')}" oninput="formatMoneyInput(this)" style="font-weight:700;"></div>
+      <div class="login-hint">Sudah otomatis dihitung dari biaya jasa per 14 hari — tetap bisa diubah manual kalau ada kesepakatan lain.</div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveBayarJasa('${t.id}')">Konfirmasi Pembayaran</button></div>
   `);
@@ -2094,7 +2109,7 @@ async function saveBayarJasa(id){
   t.riwayat.push({ id: uid('R'), type:'perpanjang', amount: total, hari, label, date: new Date().toISOString() });
   // Perpanjang jatuh tempo sejumlah hari yang dibayar, dan jadikan biaya jasa acuan baru
   t.tenorHari = t.tenorHari + hari;
-  t.biayaJasa = total;
+  t.totalJasa = total;
   await dbSet('titipan', [t]);
   const c = STATE.customers.find(x=>x.id===t.customerId);
   addLog(`Jasa penitipan dibayar: ${t.namaBarang} (${c?c.nama:''}) — ${rupiah(total)} untuk ${label}`, 'setor');
@@ -2166,7 +2181,7 @@ function openDetailTitipan(id){
       <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Nasabah</span><b>${c?c.nama:'—'}</b></div>
       <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Status</span><span class="pill ${st.cls}">${st.text}</span></div>
       <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Dana Talangan</span><b>${rupiah(t.pinjaman)}</b></div>
-      <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Biaya Jasa</span><b>${rupiah(t.biayaJasa)} / ${titipanTenorLabel(t.tenorHari)}</b></div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Total Biaya Jasa</span><b>${rupiah(t.totalJasa)} / ${titipanTenorLabel(t.tenorHari)}</b></div>
       <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Total Jasa Terbayar</span><b style="color:var(--green);">${rupiah(t.totalJasaDibayar||0)}</b></div>
       ${t.catatan ? `<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Catatan</span><b style="text-align:right; max-width:60%;">${t.catatan}</b></div>` : ''}
       <div class="panel-head" style="margin-top:16px;"><h3 style="font-size:13px;">Riwayat</h3></div>
