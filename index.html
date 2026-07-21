@@ -2046,11 +2046,7 @@ function hitungSaranDariTaksiran(){
   if(!taksiran){ el.innerHTML = `Isi taksiran untuk melihat saran dana talangan &amp; biaya jasa otomatis (bisa diubah manual). <a href="#" onclick="render('pengaturan'); closeModal(); return false;" style="color:var(--accent); font-weight:600;">Atur persennya</a>`; return; }
   const saranPinjaman = Math.round(taksiran*(talanganPersen/100)/1000)*1000;
   const saranJasa14Hari = Math.round(taksiran*(jasaPersen/100)/500)*500;
-  const pinjamanEl = document.getElementById('tt-pinjaman');
-  const jasaEl = document.getElementById('tt-jasa14');
-  if(pinjamanEl && !getMoneyInput('tt-pinjaman')) pinjamanEl.value = saranPinjaman.toLocaleString('id-ID');
-  if(jasaEl && !getMoneyInput('tt-jasa14')) jasaEl.value = saranJasa14Hari.toLocaleString('id-ID');
-  el.innerHTML = `Saran (${talanganPersen}% &amp; ${jasaPersen}% dari taksiran, sudah otomatis diisi — tetap bisa diubah manual): dana talangan <b>${rupiah(saranPinjaman)}</b>, biaya jasa <b>${rupiah(saranJasa14Hari)}</b> per 14 hari.`;
+  el.innerHTML = `Saran (${talanganPersen}% &amp; ${jasaPersen}% dari taksiran — isi manual ke kolom di bawah kalau mau dipakai): dana talangan <b>${rupiah(saranPinjaman)}</b>, biaya jasa <b>${rupiah(saranJasa14Hari)}</b> per 14 hari.`;
   tampilkanReferensiJasa();
 }
 function totalJasaUntuk(tarifPer14Hari, hari){ return Math.round((tarifPer14Hari * (hari/14)) / 500) * 500; }
