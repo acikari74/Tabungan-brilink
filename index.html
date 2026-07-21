@@ -1042,9 +1042,25 @@ function filterNasabah(){
   document.getElementById('nasabah-tbody').innerHTML = nasabahRows(filtered);
 }
 
+function luhnCheckDigit(numStr){
+  let sum = 0;
+  for(let i=0;i<numStr.length;i++){
+    let d = Number(numStr[i]);
+    if(i%2===0){ d*=2; if(d>9) d-=9; }
+    sum += d;
+  }
+  return (10 - (sum%10))%10;
+}
 function nextAccountNumber(){
-  const n = 1000000000 + STATE.customers.length + 1;
-  return String(n);
+  const product = '21'; // kode produk: tabungan
+  const year = String(new Date().getFullYear()).slice(-2);
+  let candidate;
+  do{
+    const rand = String(Math.floor(100000 + Math.random()*900000)); // 6 digit acak
+    const base = product + year + rand;
+    candidate = base + luhnCheckDigit(base);
+  } while(STATE.customers.some(c=>c.noRekening===candidate));
+  return candidate;
 }
 function nextMemberNumber(){
   return 'MB' + String(STATE.customers.length+1).padStart(5,'0');
@@ -1121,6 +1137,41 @@ async function saveNasabah(){
   }
 }
 
+/* ---------- Hapus nasabah (khusus Admin) ---------- */
+async function deleteNasabah(customerId){
+  const c = STATE.customers.find(x=>x.id===customerId);
+  if(!c) return;
+  if(STATE.currentUser.role!=='Admin'){ toast('Tidak diizinkan', 'Hanya Admin yang bisa menghapus nasabah.', true); return; }
+  if(c.saldo !== 0){
+    toast('Tidak bisa dihapus', `Saldo nasabah ini masih ${rupiah(c.saldo)}. Tarik/pindahkan saldo sampai 0 terlebih dahulu sebelum dihapus.`, true);
+    return;
+  }
+  const activeGoals = STATE.goals.filter(g=>g.customerId===customerId && g.status==='aktif').length;
+  const activeTitipan = STATE.titipan.filter(t=>t.customerId===customerId && t.status==='aktif').length;
+  if(activeGoals>0 || activeTitipan>0){
+    toast('Tidak bisa dihapus', `Nasabah ini masih punya ${activeGoals} program aktif dan/atau ${activeTitipan} titipan aktif. Selesaikan dulu sebelum menghapus.`, true);
+    return;
+  }
+  if(!confirm(`Yakin hapus nasabah "${c.nama}" (${c.noRekening})?\n\nRiwayat transaksi lama tetap tersimpan untuk audit, tapi nasabah ini tidak akan muncul lagi di daftar dan tidak bisa login ke app Nasabah.\n\nTindakan ini TIDAK BISA dibatalkan.`)) return;
+  if(!confirm(`Konfirmasi sekali lagi: hapus permanen "${c.nama}"?`)) return;
+
+  try{
+    if(c.authProvisioned){
+      // Cari & hapus dokumen customer_profiles yang menunjuk ke nasabah ini
+      // supaya akses login nasabah ini langsung tercabut.
+      const snap = await db.collection('customer_profiles').where('customerId','==',customerId).get();
+      for(const doc of snap.docs){ await doc.ref.delete(); }
+    }
+    await db.collection('customers').doc(customerId).delete();
+    STATE.customers = STATE.customers.filter(x=>x.id!==customerId);
+    addLog(`Nasabah dihapus: ${c.nama} (${c.noRekening})`, 'info');
+    toast('Nasabah dihapus', `${c.nama} sudah dihapus dari daftar.`);
+    render('nasabah');
+  }catch(err){
+    toast('Gagal menghapus', err.message, true);
+  }
+}
+
 /* ============================= DETAIL NASABAH (PASSBOOK) ============================= */
 function openDetailNasabah(id){ STATE.detailCustomerId = id; render('detail-nasabah'); }
 function viewDetailNasabah(id){
@@ -1166,6 +1217,12 @@ function viewDetailNasabah(id){
           ${c.authProvisioned ? '' : `<button class="btn btn-primary btn-sm" onclick="provisionCustomerLogin('${c.id}').then(ok=>{ if(ok) render('detail-nasabah'); })">Aktifkan Login</button>`}
         </div>
       </div>
+      ${STATE.currentUser.role==='Admin' ? `
+      <div class="panel no-print" style="margin-top:16px; border-color:var(--red-bg);">
+        <div class="panel-head"><h3 style="color:var(--red);">Zona Berbahaya</h3></div>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Menghapus nasabah bersifat permanen. Riwayat transaksi lama TIDAK ikut terhapus (untuk keperluan audit), tapi nasabah tidak akan muncul lagi di daftar dan tidak bisa login ke app Nasabah.</p>
+        <button class="btn btn-outline btn-sm" style="width:100%; color:var(--red); border-color:var(--red);" onclick="deleteNasabah('${c.id}')">Hapus Nasabah Ini</button>
+      </div>` : ''}
     </div>
     <div class="panel">
       <div class="panel-head"><h3>Mutasi Rekening</h3><span class="pill gray">${txs.length} transaksi</span></div>
