@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <title>Nasabah — Tabungan Customer</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1E1B4B">
+<meta name="theme-color" content="#0A1D3C">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,13 +13,13 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,800;1,800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <style>
   :root{
-    --primary:#F97316; --primary-hover:#EA580C; --secondary:#1E1B4B;
+    --primary:#F3A616; --primary-hover:#D6900E; --secondary:#0A1D3C; --secondary-light:#163666;
     --bg:#F8FAFC; --surface:#FFFFFF; --success:#10B981; --danger:#EF4444;
     --text-main:#0F172A; --text-muted:#64748B; --border:#F1F5F9;
   }
@@ -30,7 +30,7 @@
   .hidden{display:none !important;}
   button{font-family:inherit; cursor:pointer;}
   input{font-family:inherit;}
-  .btn-primary{background:linear-gradient(180deg,#FB923C,var(--primary) 55%,var(--primary-hover)); color:#fff; font-weight:700; border:none; border-radius:999px; padding:16px; font-size:15px; transition:transform .12s, box-shadow .12s; box-shadow:0 1px 0 rgba(255,255,255,.35) inset, 0 -3px 6px rgba(0,0,0,.12) inset, 0 12px 22px -8px rgba(249,115,22,.55);}
+  .btn-primary{background:linear-gradient(180deg,#FBC55D,var(--primary) 55%,var(--primary-hover)); color:#fff; font-weight:700; border:none; border-radius:999px; padding:16px; font-size:15px; transition:transform .12s, box-shadow .12s; box-shadow:0 1px 0 rgba(255,255,255,.35) inset, 0 -3px 6px rgba(0,0,0,.12) inset, 0 12px 22px -8px rgba(243,166,22,.5);}
   .btn-primary:active{transform:translateY(2px) scale(.98); box-shadow:0 1px 0 rgba(255,255,255,.2) inset, 0 -1px 3px rgba(0,0,0,.1) inset, 0 4px 10px -6px rgba(249,115,22,.5);}
   .btn-primary:disabled{opacity:.5;}
   .btn-outline{background:linear-gradient(180deg,#fff,#F8FAFC); color:var(--text-main); font-weight:700; border:1.5px solid var(--border); border-radius:999px; padding:14px; font-size:14px; transition:transform .12s, box-shadow .12s; box-shadow:0 1px 0 #fff inset, 0 3px 8px rgba(15,23,42,.06);}
@@ -49,7 +49,7 @@
   .nav-btn.active{color:var(--primary);}
   .nav-btn.active .nav-ic{background:linear-gradient(180deg,#FFEDD9,#FFE0BD); box-shadow:0 1px 0 #fff inset, 0 4px 10px -3px rgba(249,115,22,.45); transform:translateY(-2px);}
   .nav-btn:active .nav-ic{transform:scale(.9);}
-  .member-card{position:relative; border-radius:26px; padding:26px; overflow:hidden; background:linear-gradient(135deg,#4338CA,#1E1B4B 65%); color:#fff;
+  .member-card{position:relative; border-radius:26px; padding:26px; overflow:hidden; background:linear-gradient(135deg,var(--secondary-light),var(--secondary) 65%); color:#fff; border-bottom:3px solid var(--primary);
     box-shadow:0 2px 0 rgba(255,255,255,.12) inset, 0 28px 50px -16px rgba(30,27,75,.55), 0 10px 20px -10px rgba(30,27,75,.4);
     transform-style:preserve-3d; will-change:transform; transition:transform .12s ease-out;}
   .member-card::before{content:''; position:absolute; inset:0; background:linear-gradient(120deg,rgba(255,255,255,.14),transparent 40%); pointer-events:none;}
@@ -59,7 +59,7 @@
   .pill-red{background:rgba(239,68,68,.12); color:var(--danger);}
   .pill-gray{background:#F1F5F9; color:var(--text-muted);}
   .progress-track{width:100%; height:10px; background:#EDF0F5; border-radius:999px; overflow:hidden; box-shadow:0 2px 4px rgba(15,23,42,.08) inset, 0 -1px 0 #fff inset;}
-  .progress-fill{height:100%; background:linear-gradient(180deg,#FDBA74,var(--primary) 55%,var(--primary-hover)); border-radius:999px; transition:width .6s ease; box-shadow:0 1px 0 rgba(255,255,255,.4) inset;}
+  .progress-fill{height:100%; background:linear-gradient(180deg,#F8CB74,var(--primary) 55%,var(--primary-hover)); border-radius:999px; transition:width .6s ease; box-shadow:0 1px 0 rgba(255,255,255,.4) inset;}
   .tab-btn{flex:1; text-align:center; padding:10px; border-radius:999px; font-weight:700; font-size:13px; border:none; background:none; color:var(--text-muted); transition:.15s;}
   .tab-btn.active{background:var(--secondary); color:#fff;}
   .empty-box{text-align:center; padding:40px 20px; color:var(--text-muted);}
@@ -77,22 +77,27 @@
   <!-- BOOT -->
   <div id="screen-boot" style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;">
     <div style="width:56px; height:56px; border-radius:18px; background:var(--secondary); display:flex; align-items:center; justify-content:center;">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F3A616" stroke-width="2.2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
     </div>
     <div style="color:var(--text-muted); font-size:13px;" id="boot-msg">Memuat…</div>
   </div>
 
   <!-- LOGIN -->
   <div id="screen-login" class="hidden fade-in" style="min-height:100vh; display:flex; flex-direction:column;">
-    <div style="position:relative; background:linear-gradient(160deg,#3730A3,#1E1B4B 70%); padding:56px 24px 64px; overflow:hidden; border-radius:0 0 36px 36px;">
-      <div style="position:absolute; width:220px; height:220px; background:#F97316; border-radius:50%; filter:blur(60px); opacity:.45; top:-80px; right:-60px;"></div>
-      <div style="position:absolute; width:140px; height:140px; background:#6366F1; border-radius:50%; filter:blur(50px); opacity:.5; bottom:-50px; left:-40px;"></div>
+    <div style="position:relative; background:linear-gradient(160deg,#163666,#0A1D3C 70%); padding:56px 24px 64px; overflow:hidden; border-radius:0 0 36px 36px;">
+      <div style="position:absolute; width:220px; height:220px; background:#F3A616; border-radius:50%; filter:blur(60px); opacity:.4; top:-80px; right:-60px;"></div>
+      <div style="position:absolute; width:140px; height:140px; background:#163666; border-radius:50%; filter:blur(50px); opacity:.6; bottom:-50px; left:-40px;"></div>
       <div style="position:relative; text-align:center; color:#fff;">
-        <div class="badge-3d" style="width:58px; height:58px; border-radius:18px; background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.08)); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; border:1px solid rgba(255,255,255,.18);">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
+        <div class="badge-3d" style="width:54px; height:54px; border-radius:16px; background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.08)); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; border:1px solid rgba(255,255,255,.18);">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F3A616" stroke-width="2.2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
         </div>
-        <h1 style="font-size:22px; font-weight:800; margin:0;" id="login-agent-name">Tabungan Nasabah</h1>
-        <p style="opacity:.75; font-size:13px; margin:6px 0 0;">Cek saldo & riwayat tabungan Anda kapan saja</p>
+        <div style="font-family:'Montserrat',sans-serif; font-weight:800; font-style:italic; font-size:27px; letter-spacing:-.5px; line-height:1;">PASTI <span style="color:#F3A616;">PUNYA</span></div>
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:9px;">
+          <div style="width:18px; height:1.5px; background:#F3A616;"></div>
+          <p style="font-size:10px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; opacity:.85; margin:0;">by <span id="login-agent-name">Tabungan Nasabah</span></p>
+          <div style="width:18px; height:1.5px; background:#F3A616;"></div>
+        </div>
+        <p style="opacity:.7; font-size:12.5px; margin:12px 0 0;">Cek saldo & riwayat tabungan Anda kapan saja</p>
       </div>
     </div>
     <div class="shell" style="flex:1; margin-top:-38px; position:relative;">
@@ -113,11 +118,11 @@
 
   <!-- BUAT PIN (pertama kali) -->
   <div id="screen-setpin" class="hidden fade-in" style="min-height:100vh; display:flex; flex-direction:column;">
-    <div style="position:relative; background:linear-gradient(160deg,#3730A3,#1E1B4B 70%); padding:56px 24px 64px; overflow:hidden; border-radius:0 0 36px 36px;">
-      <div style="position:absolute; width:200px; height:200px; background:#F97316; border-radius:50%; filter:blur(60px); opacity:.4; top:-70px; right:-50px;"></div>
+    <div style="position:relative; background:linear-gradient(160deg,#163666,#0A1D3C 70%); padding:56px 24px 64px; overflow:hidden; border-radius:0 0 36px 36px;">
+      <div style="position:absolute; width:200px; height:200px; background:#F3A616; border-radius:50%; filter:blur(60px); opacity:.35; top:-70px; right:-50px;"></div>
       <div style="position:relative; text-align:center; color:#fff;">
         <div class="badge-3d" style="width:58px; height:58px; border-radius:18px; background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.08)); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; border:1px solid rgba(255,255,255,.18);">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F3A616" stroke-width="2.2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
         <h1 style="font-size:20px; font-weight:800; margin:0;">Buat PIN Anda</h1>
         <p style="opacity:.75; font-size:13px; margin:6px 0 0;">PIN ini dipakai untuk login berikutnya, gantikan No. HP</p>
@@ -144,7 +149,7 @@
         <div style="font-size:11.5px; color:var(--text-muted);">Halo,</div>
         <div style="font-weight:800; font-size:16px;" id="hdr-name">—</div>
       </div>
-      <div class="badge-3d" style="width:42px; height:42px; border-radius:14px; overflow:hidden; background:linear-gradient(160deg,#4338CA,var(--secondary)); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:13px;" id="hdr-avatar">—</div>
+      <div class="badge-3d" style="width:42px; height:42px; border-radius:14px; overflow:hidden; background:linear-gradient(160deg,var(--secondary-light),var(--secondary)); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:13px;" id="hdr-avatar">—</div>
     </header>
 
     <div id="page-home" class="shell fade-in"></div>
@@ -347,8 +352,8 @@ function renderHome(){
   const recent = STATE.transactions.slice(0,3);
   document.getElementById('page-home').innerHTML = `
     <div class="member-card" style="margin-top:6px;">
-      <div class="orb" style="width:180px; height:180px; background:#F97316; top:-60px; right:-50px;"></div>
-      <div class="orb" style="width:120px; height:120px; background:#6366F1; bottom:-40px; left:-30px;"></div>
+      <div class="orb" style="width:180px; height:180px; background:#F3A616; top:-60px; right:-50px;"></div>
+      <div class="orb" style="width:120px; height:120px; background:#163666; bottom:-40px; left:-30px;"></div>
       <div style="position:relative;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
@@ -535,7 +540,7 @@ function renderProfil(){
   document.getElementById('page-profil').innerHTML = `
     <h2 style="font-size:19px; margin:14px 0 16px;">Profil</h2>
     <div class="card" style="padding:22px; text-align:center; margin-bottom:16px;">
-      <div class="badge-3d" style="width:66px; height:66px; border-radius:20px; background:linear-gradient(160deg,#4338CA,var(--secondary)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; margin:0 auto 12px;">${initials(c.nama)}</div>
+      <div class="badge-3d" style="width:66px; height:66px; border-radius:20px; background:linear-gradient(160deg,var(--secondary-light),var(--secondary)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; margin:0 auto 12px;">${initials(c.nama)}</div>
       <div style="font-weight:800; font-size:16px;">${c.nama}</div>
       <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${c.noRekening} • Member ${c.noMember}</div>
     </div>
