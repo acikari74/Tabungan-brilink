@@ -523,7 +523,7 @@ function titipanCardView(t){
       <span class="pill ${st.cls}">${st.text}</span>
     </div>
     <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;"><span style="color:var(--text-muted);">Dana Talangan</span><b>${rupiah(t.pinjaman)}</b></div>
-    <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;"><span style="color:var(--text-muted);">Biaya Jasa</span><b style="color:var(--primary);">${rupiah(t.biayaJasa)}</b></div>
+    <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;"><span style="color:var(--text-muted);">Total Biaya Jasa</span><b style="color:var(--primary);">${rupiah(t.totalJasa)}</b></div>
     <div style="display:flex; justify-content:space-between; font-size:12.5px;"><span style="color:var(--text-muted);">Total Jasa Terbayar</span><b style="color:var(--success);">${rupiah(t.totalJasaDibayar||0)}</b></div>
     ${isAktif ? `<div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border); font-size:11.5px; color:var(--text-muted); text-align:center;">Mau bayar jasa atau tebus barang? Datang langsung ke agen.</div>` : ''}
   </div>`;
