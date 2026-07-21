@@ -1448,6 +1448,7 @@ function printTitipanReceipt(titipanId, eventType, extra){
     <div class="line"></div>
     ${receiptRow('Dana Talangan', rupiah(t.pinjaman))}
     ${eventType==='baru' ? receiptRow('Total Biaya Jasa', rupiah(t.totalJasa), true) : ''}
+    ${eventType==='tebus' ? receiptRow('Biaya Jasa Titip', rupiah(extra.jasa||0), true) : ''}
     ${eventType!=='tebus'&&eventType!=='lelang' ? receiptRow('Jatuh Tempo', fmtDate(titipanJatuhTempo(t))) : ''}
   `;
   openReceiptPrint('Struk Titipan '+t.id, body);
@@ -2188,7 +2189,7 @@ async function saveTebus(id){
       <div class="sim-row"><span>Dana Talangan (pokok)</span><b>${rupiah(t.pinjaman)}</b></div>
       <div class="sim-row"><span>Biaya Jasa Titip</span><b>${rupiah(totalJasaDibayarSekarang)}</b></div>
     </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','tebus',{total:${totalTebus}})">🖨️ Cetak Struk</button></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','tebus',{total:${totalTebus}, jasa:${totalJasaDibayarSekarang}})">🖨️ Cetak Struk</button></div>
   `);
 }
 
