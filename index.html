@@ -1989,6 +1989,7 @@ function titipanCard(t){
       </div>
       <span class="pill ${st.cls}">${st.text}</span>
     </div>
+    <div class="goal-nums"><span style="color:var(--muted);">Taksiran Barang</span><b>${t.taksiran ? rupiah(t.taksiran) : '—'}</b></div>
     <div class="goal-nums"><span style="color:var(--muted);">Dana Talangan</span><b>${rupiah(t.pinjaman)}</b></div>
     <div class="goal-nums" style="margin-bottom:14px;"><span style="color:var(--muted);">Total Biaya Jasa (${titipanTenorLabel(t.tenorHari)})</span><b style="color:var(--gold);">${rupiah(t.totalJasa)}</b></div>
     <div class="goal-foot">
@@ -2018,6 +2019,7 @@ function openAddTitipan(){
         </div>
       </div>
       <div class="field"><label>Nama/Deskripsi Barang</label><input id="tt-nama" placeholder="Contoh: Kalung emas 10 gram"></div>
+      <div class="field"><label>Nilai Taksiran Barang (Rp)</label><input id="tt-taksiran" type="text" inputmode="numeric" placeholder="0 (opsional, buat catatan internal)" oninput="formatMoneyInput(this)" style="font-weight:700;"></div>
       <div class="field"><label>Dana Talangan Diberikan (Rp)*</label><input id="tt-pinjaman" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this)" style="font-weight:700;"></div>
       <div class="field"><label>Biaya Jasa Penitipan / 14 Hari (Rp)*</label><input id="tt-jasa14" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this); tampilkanReferensiJasa();" style="font-weight:700;"></div>
       <div id="tt-referensi" class="login-hint"></div>
@@ -2047,6 +2049,7 @@ function tampilkanReferensiJasa(){
 async function saveNewTitipan(){
   const customerId = document.getElementById('tt-customer').value;
   const nama = document.getElementById('tt-nama').value.trim();
+  const taksiran = getMoneyInput('tt-taksiran');
   const pinjaman = getMoneyInput('tt-pinjaman');
   const tarifJasaPer14Hari = getMoneyInput('tt-jasa14');
   const tenorHari = Number(document.getElementById('tt-tenor').value);
@@ -2057,7 +2060,7 @@ async function saveNewTitipan(){
   const totalJasa = totalJasaUntuk(tarifJasaPer14Hari, tenorHari);
   const t = {
     id: uid('TT'), customerId, kategori: titipanCatBuffer, namaBarang: nama,
-    pinjaman, tarifJasaPer14Hari, totalJasa, tenorHari,
+    taksiran, pinjaman, tarifJasaPer14Hari, totalJasa, tenorHari,
     mulai: new Date().toISOString(), status:'aktif',
     totalJasaDibayar: 0, catatan, riwayat: [],
   };
@@ -2180,6 +2183,7 @@ function openDetailTitipan(id){
     <div class="modal-body">
       <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Nasabah</span><b>${c?c.nama:'—'}</b></div>
       <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Status</span><span class="pill ${st.cls}">${st.text}</span></div>
+      ${t.taksiran ? `<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Taksiran Barang</span><b>${rupiah(t.taksiran)}</b></div>` : ''}
       <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Dana Talangan</span><b>${rupiah(t.pinjaman)}</b></div>
       <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Total Biaya Jasa</span><b>${rupiah(t.totalJasa)} / ${titipanTenorLabel(t.tenorHari)}</b></div>
       <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Total Jasa Terbayar</span><b style="color:var(--green);">${rupiah(t.totalJasaDibayar||0)}</b></div>
