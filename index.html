@@ -1449,6 +1449,7 @@ function printTitipanReceipt(titipanId, eventType, extra){
     <div class="line"></div>
     ${receiptRow('Dana Talangan', rupiah(t.pinjaman))}
     ${receiptRow('Jasa/Bulan', rupiah(t.tarifJasaPerBulan))}
+    ${eventType==='baru' ? receiptRow('Total Jasa Periode Ini', rupiah(t.totalJasaPeriode || hitungJasaProporsional(t.tarifJasaPerBulan, t.tenorHari)), true) : ''}
     ${eventType!=='tebus'&&eventType!=='lelang' ? receiptRow('Jatuh Tempo', fmtDate(titipanJatuhTempo(t))) : ''}
   `;
   openReceiptPrint('Struk Titipan '+t.id, body);
@@ -1992,7 +1993,8 @@ function titipanCard(t){
     </div>
     <div class="goal-nums"><span style="color:var(--muted);">Taksiran Barang</span><b>${rupiah(t.taksiran)}</b></div>
     <div class="goal-nums"><span style="color:var(--muted);">Dana Talangan</span><b>${rupiah(t.pinjaman)}</b></div>
-    <div class="goal-nums" style="margin-bottom:14px;"><span style="color:var(--muted);">Jasa Penitipan / Bulan</span><b style="color:var(--gold);">${rupiah(t.tarifJasaPerBulan)}</b></div>
+    <div class="goal-nums"><span style="color:var(--muted);">Jasa Penitipan / Bulan</span><b>${rupiah(t.tarifJasaPerBulan)}</b></div>
+    <div class="goal-nums" style="margin-bottom:14px;"><span style="color:var(--muted);">Total Jasa (${(TITIPAN_TENOR_OPTIONS.find(o=>o.hari===t.tenorHari)||{}).label || t.tenorHari+' hari'})</span><b style="color:var(--gold);">${rupiah(t.totalJasaPeriode || hitungJasaProporsional(t.tarifJasaPerBulan, t.tenorHari))}</b></div>
     <div class="goal-foot">
       ${isOpen
         ? `<button class="btn btn-green btn-sm" onclick="openBayarJasa('${t.id}')">Bayar Jasa</button>
@@ -2022,13 +2024,13 @@ function openAddTitipan(){
       <div class="field"><label>Nama/Deskripsi Barang</label><input id="tt-nama" placeholder="Contoh: Kalung emas 10 gram"></div>
       <div class="field"><label>Nilai Taksiran Barang (Rp)*</label><input id="tt-taksiran" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this); hitungSaranTitipan();" style="font-weight:700;"></div>
       <div class="field"><label>Dana Talangan Diberikan (Rp)*</label><input id="tt-pinjaman" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this)" style="font-weight:700;"></div>
-      <div class="field"><label>Biaya Jasa Penitipan / Bulan (Rp)*</label><input id="tt-jasa" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this)" style="font-weight:700;"></div>
-      <div id="tt-saran" class="login-hint"></div>
       <div class="field"><label>Jangka Waktu</label>
-        <select id="tt-tenor">
+        <select id="tt-tenor" onchange="hitungSaranTitipan()">
           ${TITIPAN_TENOR_OPTIONS.map(o=>`<option value="${o.hari}" ${o.hari===120?'selected':''}>${o.label}</option>`).join('')}
         </select>
       </div>
+      <div class="field"><label>Biaya Jasa Penitipan / Bulan (Rp)*</label><input id="tt-jasa" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this); hitungSaranTitipan();" style="font-weight:700;"></div>
+      <div id="tt-saran" class="login-hint"></div>
       <div class="field"><label>Catatan (opsional)</label><input id="tt-catatan" placeholder="Kondisi barang, kelengkapan, dll"></div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveNewTitipan()">Simpan Titipan</button></div>
@@ -2042,10 +2044,18 @@ function hitungSaranTitipan(){
   if(!el) return;
   const talanganPersen = STATE.settings.talanganPersen || 80;
   const jasaPersen = STATE.settings.jasaPersenPerBulan || 1.75;
+  const tenorEl = document.getElementById('tt-tenor');
+  const tenorHari = tenorEl ? Number(tenorEl.value) : 120;
+  const tenorLabel = (TITIPAN_TENOR_OPTIONS.find(o=>o.hari===tenorHari)||{}).label || `${tenorHari} hari`;
   if(!taksiran){ el.innerHTML = `Saran: dana talangan maksimal ±${talanganPersen}% dari taksiran, biaya jasa ±${jasaPersen}% dari taksiran per bulan. <a href="#" onclick="render('pengaturan'); closeModal(); return false;" style="color:var(--accent); font-weight:600;">Ubah di Pengaturan</a>`; return; }
   const saranPinjaman = Math.round(taksiran*(talanganPersen/100)/1000)*1000;
-  const saranJasa = Math.round(taksiran*(jasaPersen/100)/500)*500;
-  el.innerHTML = `Saran (bisa disesuaikan): dana talangan maks <b>${rupiah(saranPinjaman)}</b> (${talanganPersen}%), biaya jasa <b>${rupiah(saranJasa)}</b>/bulan (${jasaPersen}%) dari taksiran.`;
+  const saranJasaPerBulan = Math.round(taksiran*(jasaPersen/100)/500)*500;
+  // Pakai nilai yang sudah diisi user di kolom jasa (kalau ada), kalau belum diisi pakai saran
+  const jasaInputEl = document.getElementById('tt-jasa');
+  const jasaPerBulanDipakai = jasaInputEl && getMoneyInput('tt-jasa') ? getMoneyInput('tt-jasa') : saranJasaPerBulan;
+  const totalJasaPeriode = hitungJasaProporsional(jasaPerBulanDipakai, tenorHari);
+  el.innerHTML = `Saran (bisa disesuaikan): dana talangan maks <b>${rupiah(saranPinjaman)}</b> (${talanganPersen}%), biaya jasa <b>${rupiah(saranJasaPerBulan)}</b>/bulan (${jasaPersen}%) dari taksiran.<br>
+    <span style="display:inline-block; margin-top:6px; padding-top:6px; border-top:1px dashed var(--border); color:var(--text-main);">Total biaya jasa untuk <b>${tenorLabel}</b> (mengikuti jangka waktu di atas): <b style="color:var(--gold);">${rupiah(totalJasaPeriode)}</b></span>`;
 }
 async function saveNewTitipan(){
   const customerId = document.getElementById('tt-customer').value;
@@ -2058,9 +2068,11 @@ async function saveNewTitipan(){
   if(!customerId || !nama || !taksiran || !pinjaman){ toast('Data belum lengkap', 'Nasabah, nama barang, taksiran, dan dana talangan wajib diisi.', true); return; }
   if(pinjaman > taksiran){ toast('Dana talangan terlalu besar', 'Dana talangan tidak boleh melebihi nilai taksiran barang.', true); return; }
   const c = STATE.customers.find(x=>x.id===customerId);
+  const tenorLabel = (TITIPAN_TENOR_OPTIONS.find(o=>o.hari===tenorHari)||{}).label || `${tenorHari} hari`;
+  const totalJasaPeriode = hitungJasaProporsional(tarifJasaPerBulan, tenorHari);
   const t = {
     id: uid('TT'), customerId, kategori: titipanCatBuffer, namaBarang: nama,
-    taksiran, pinjaman, tarifJasaPerBulan, tenorHari,
+    taksiran, pinjaman, tarifJasaPerBulan, tenorHari, totalJasaPeriode,
     mulai: new Date().toISOString(), status:'aktif',
     totalJasaDibayar: 0, catatan, riwayat: [],
   };
@@ -2073,6 +2085,8 @@ async function saveNewTitipan(){
     <div class="modal-head"><h3>✅ Titipan Dicatat</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(pinjaman)}</b><br><span>Dana talangan — ${nama} (${c?c.nama:''})</span></div></div>
+      <div class="sim-row"><span>Jangka Waktu</span><b>${tenorLabel}</b></div>
+      <div class="sim-row"><span>Total Jasa untuk ${tenorLabel}</span><b style="color:var(--gold);">${rupiah(totalJasaPeriode)}</b></div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','baru')">🖨️ Cetak Struk</button></div>
   `);
