@@ -1919,14 +1919,14 @@ const TITIPAN_CATS = {
   lain:       { label:'Lainnya',         emoji:'📦' },
 };
 const TITIPAN_TENOR_OPTIONS = [
-  { label:'14 hari', hari:14 },
-  { label:'1 bulan', hari:30 },
-  { label:'2 bulan', hari:60 },
-  { label:'3 bulan', hari:90 },
-  { label:'4 bulan', hari:120 },
-  { label:'6 bulan', hari:180 },
-  { label:'9 bulan', hari:270 },
-  { label:'12 bulan', hari:360 },
+  { label:'14 hari (1 periode)',        hari:14 },
+  { label:'±1 bulan (2 periode)',       hari:28 },
+  { label:'±1,5 bulan (3 periode)',     hari:42 },
+  { label:'±2 bulan (4 periode)',       hari:56 },
+  { label:'±3 bulan (6 periode)',       hari:84 },
+  { label:'±4 bulan (8 periode)',       hari:112 },
+  { label:'±6 bulan (12 periode)',      hari:168 },
+  { label:'±12 bulan (24 periode)',     hari:336 },
 ];
 function titipanJatuhTempo(t){
   const d = new Date(t.mulai);
@@ -2026,7 +2026,7 @@ function openAddTitipan(){
       <div class="field"><label>Dana Talangan Diberikan (Rp)*</label><input id="tt-pinjaman" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this)" style="font-weight:700;"></div>
       <div class="field"><label>Jangka Waktu</label>
         <select id="tt-tenor" onchange="hitungSaranTitipan()">
-          ${TITIPAN_TENOR_OPTIONS.map(o=>`<option value="${o.hari}" ${o.hari===120?'selected':''}>${o.label}</option>`).join('')}
+          ${TITIPAN_TENOR_OPTIONS.map(o=>`<option value="${o.hari}" ${o.hari===112?'selected':''}>${o.label}</option>`).join('')}
         </select>
       </div>
       <div class="field"><label>Biaya Jasa Penitipan / 14 Hari (Rp)*</label><input id="tt-jasa" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this); hitungSaranTitipan();" style="font-weight:700;"></div>
