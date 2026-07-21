@@ -790,7 +790,7 @@ async function loadDataAndEnter(authUser, profileArg){
 
   STATE.settings = await dbGet('agent-settings', null);
   if(!STATE.settings){
-    STATE.settings = { name:'Agen BRILink Acik', address:'Jl. Merdeka No. 21, Medan', wa:'081234567890', logoText:'A', darkMode:false };
+    STATE.settings = { name:'Agen BRILink Acik', address:'Jl. Merdeka No. 21, Medan', wa:'081234567890', logoText:'A', darkMode:false, talanganPersen:80, jasaPersenPerBulan:1.75 };
     await dbSet('agent-settings', STATE.settings);
   }
   STATE.users = await fbLoadProfiles();
@@ -1426,7 +1426,7 @@ function printTitipanReceipt(titipanId, eventType, extra){
   if(eventType==='baru'){
     amountBlock = `<div class="center muted">Dana Talangan Diterima</div><div class="center big">+${rupiah(t.pinjaman)}</div>`;
   } else if(eventType==='jasa'){
-    amountBlock = `<div class="center muted">Jasa Penitipan Dibayar (${extra.bulan} bulan)</div><div class="center big">${rupiah(extra.total)}</div>`;
+    amountBlock = `<div class="center muted">Jasa Penitipan Dibayar (${extra.label})</div><div class="center big">${rupiah(extra.total)}</div>`;
   } else if(eventType==='tebus'){
     amountBlock = `<div class="center muted">Total Ditebus</div><div class="center big">${rupiah(extra.total)}</div>`;
   } else if(eventType==='lelang'){
@@ -1917,9 +1917,19 @@ const TITIPAN_CATS = {
   dokumen:    { label:'Dokumen/Sertifikat', emoji:'📄' },
   lain:       { label:'Lainnya',         emoji:'📦' },
 };
+const TITIPAN_TENOR_OPTIONS = [
+  { label:'14 hari', hari:14 },
+  { label:'1 bulan', hari:30 },
+  { label:'2 bulan', hari:60 },
+  { label:'3 bulan', hari:90 },
+  { label:'4 bulan', hari:120 },
+  { label:'6 bulan', hari:180 },
+  { label:'9 bulan', hari:270 },
+  { label:'12 bulan', hari:360 },
+];
 function titipanJatuhTempo(t){
   const d = new Date(t.mulai);
-  d.setMonth(d.getMonth() + t.tenorBulan);
+  d.setDate(d.getDate() + t.tenorHari);
   return d;
 }
 function titipanSisaHari(t){
@@ -2016,7 +2026,7 @@ function openAddTitipan(){
       <div id="tt-saran" class="login-hint"></div>
       <div class="field"><label>Jangka Waktu</label>
         <select id="tt-tenor">
-          ${[1,2,3,4,6,9,12].map(m=>`<option value="${m}" ${m===4?'selected':''}>${m} bulan</option>`).join('')}
+          ${TITIPAN_TENOR_OPTIONS.map(o=>`<option value="${o.hari}" ${o.hari===120?'selected':''}>${o.label}</option>`).join('')}
         </select>
       </div>
       <div class="field"><label>Catatan (opsional)</label><input id="tt-catatan" placeholder="Kondisi barang, kelengkapan, dll"></div>
@@ -2030,10 +2040,12 @@ function hitungSaranTitipan(){
   const taksiran = getMoneyInput('tt-taksiran');
   const el = document.getElementById('tt-saran');
   if(!el) return;
-  if(!taksiran){ el.innerHTML = 'Saran: dana talangan maksimal ±80% dari taksiran, biaya jasa ±1,75% dari taksiran per bulan.'; return; }
-  const saranPinjaman = Math.round(taksiran*0.8/1000)*1000;
-  const saranJasa = Math.round(taksiran*0.0175/500)*500;
-  el.innerHTML = `Saran (bisa disesuaikan): dana talangan maks <b>${rupiah(saranPinjaman)}</b> (80%), biaya jasa <b>${rupiah(saranJasa)}</b>/bulan (1,75%) dari taksiran.`;
+  const talanganPersen = STATE.settings.talanganPersen || 80;
+  const jasaPersen = STATE.settings.jasaPersenPerBulan || 1.75;
+  if(!taksiran){ el.innerHTML = `Saran: dana talangan maksimal ±${talanganPersen}% dari taksiran, biaya jasa ±${jasaPersen}% dari taksiran per bulan. <a href="#" onclick="render('pengaturan'); closeModal(); return false;" style="color:var(--accent); font-weight:600;">Ubah di Pengaturan</a>`; return; }
+  const saranPinjaman = Math.round(taksiran*(talanganPersen/100)/1000)*1000;
+  const saranJasa = Math.round(taksiran*(jasaPersen/100)/500)*500;
+  el.innerHTML = `Saran (bisa disesuaikan): dana talangan maks <b>${rupiah(saranPinjaman)}</b> (${talanganPersen}%), biaya jasa <b>${rupiah(saranJasa)}</b>/bulan (${jasaPersen}%) dari taksiran.`;
 }
 async function saveNewTitipan(){
   const customerId = document.getElementById('tt-customer').value;
@@ -2041,14 +2053,14 @@ async function saveNewTitipan(){
   const taksiran = getMoneyInput('tt-taksiran');
   const pinjaman = getMoneyInput('tt-pinjaman');
   const tarifJasaPerBulan = getMoneyInput('tt-jasa');
-  const tenorBulan = Number(document.getElementById('tt-tenor').value);
+  const tenorHari = Number(document.getElementById('tt-tenor').value);
   const catatan = document.getElementById('tt-catatan').value.trim();
   if(!customerId || !nama || !taksiran || !pinjaman){ toast('Data belum lengkap', 'Nasabah, nama barang, taksiran, dan dana talangan wajib diisi.', true); return; }
   if(pinjaman > taksiran){ toast('Dana talangan terlalu besar', 'Dana talangan tidak boleh melebihi nilai taksiran barang.', true); return; }
   const c = STATE.customers.find(x=>x.id===customerId);
   const t = {
     id: uid('TT'), customerId, kategori: titipanCatBuffer, namaBarang: nama,
-    taksiran, pinjaman, tarifJasaPerBulan, tenorBulan,
+    taksiran, pinjaman, tarifJasaPerBulan, tenorHari,
     mulai: new Date().toISOString(), status:'aktif',
     totalJasaDibayar: 0, catatan, riwayat: [],
   };
@@ -2067,6 +2079,17 @@ async function saveNewTitipan(){
 }
 
 /* ---------- Bayar jasa penitipan (perpanjang) ---------- */
+const BAYAR_JASA_OPTIONS = [
+  { label:'14 hari', hari:14 },
+  { label:'1 bulan', hari:30 },
+  { label:'2 bulan', hari:60 },
+  { label:'3 bulan', hari:90 },
+  { label:'4 bulan', hari:120 },
+  { label:'6 bulan', hari:180 },
+];
+function hitungJasaProporsional(tarifPerBulan, hari){
+  return Math.round((tarifPerBulan * (hari/30)) / 500) * 500;
+}
 function openBayarJasa(id){
   const t = STATE.titipan.find(x=>x.id===id);
   if(!t) return;
@@ -2075,12 +2098,12 @@ function openBayarJasa(id){
     <div class="modal-head"><h3>Bayar Jasa Penitipan</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="login-hint">${t.namaBarang} — ${c?c.nama:''}<br>Biaya jasa penitipan per bulan: <b>${rupiah(t.tarifJasaPerBulan)}</b></div>
-      <div class="field"><label>Jumlah Bulan Dibayar</label>
-        <select id="bj-bulan" onchange="document.getElementById('bj-total').textContent = rupiahJS(Number(this.value)*${t.tarifJasaPerBulan})">
-          ${[1,2,3,4,6].map(m=>`<option value="${m}">${m} bulan</option>`).join('')}
+      <div class="field"><label>Perpanjang Selama</label>
+        <select id="bj-hari" onchange="document.getElementById('bj-total').textContent = rupiahJS(hitungJasaProporsional(${t.tarifJasaPerBulan}, Number(this.value)))">
+          ${BAYAR_JASA_OPTIONS.map(o=>`<option value="${o.hari}">${o.label}</option>`).join('')}
         </select>
       </div>
-      <div class="sim-row big"><div><b id="bj-total">${rupiah(t.tarifJasaPerBulan)}</b><br><span>Total dibayar nasabah</span></div></div>
+      <div class="sim-row big"><div><b id="bj-total">${rupiah(hitungJasaProporsional(t.tarifJasaPerBulan, 14))}</b><br><span>Total dibayar nasabah</span></div></div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveBayarJasa('${t.id}')">Konfirmasi Pembayaran</button></div>
   `);
@@ -2089,24 +2112,25 @@ function rupiahJS(n){ return rupiah(n); }
 async function saveBayarJasa(id){
   const t = STATE.titipan.find(x=>x.id===id);
   if(!t) return;
-  const bulan = Number(document.getElementById('bj-bulan').value);
-  const total = bulan * t.tarifJasaPerBulan;
+  const hari = Number(document.getElementById('bj-hari').value);
+  const total = hitungJasaProporsional(t.tarifJasaPerBulan, hari);
+  const label = BAYAR_JASA_OPTIONS.find(o=>o.hari===hari)?.label || `${hari} hari`;
   t.totalJasaDibayar = (t.totalJasaDibayar||0) + total;
   t.riwayat = t.riwayat||[];
-  t.riwayat.push({ id: uid('R'), type:'perpanjang', amount: total, bulan, date: new Date().toISOString() });
-  // Perpanjang jatuh tempo sejumlah bulan yang dibayar
-  t.tenorBulan = t.tenorBulan + bulan;
+  t.riwayat.push({ id: uid('R'), type:'perpanjang', amount: total, hari, label, date: new Date().toISOString() });
+  // Perpanjang jatuh tempo sejumlah hari yang dibayar
+  t.tenorHari = t.tenorHari + hari;
   await dbSet('titipan', [t]);
   const c = STATE.customers.find(x=>x.id===t.customerId);
-  addLog(`Jasa penitipan dibayar: ${t.namaBarang} (${c?c.nama:''}) — ${rupiah(total)} untuk ${bulan} bulan`, 'setor');
+  addLog(`Jasa penitipan dibayar: ${t.namaBarang} (${c?c.nama:''}) — ${rupiah(total)} untuk ${label}`, 'setor');
   closeModal();
   render('titipan');
   openModal(`
     <div class="modal-head"><h3>✅ Pembayaran Tercatat</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(total)}</b><br><span>Jasa penitipan ${bulan} bulan — ${t.namaBarang} (${c?c.nama:''})</span></div></div>
+      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(total)}</b><br><span>Jasa penitipan ${label} — ${t.namaBarang} (${c?c.nama:''})</span></div></div>
     </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','jasa',{bulan:${bulan}, total:${total}})">🖨️ Cetak Struk</button></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','jasa',{label:'${label}', total:${total}})">🖨️ Cetak Struk</button></div>
   `);
 }
 
@@ -2170,7 +2194,7 @@ function openDetailTitipan(id){
       ${t.catatan ? `<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Catatan</span><b style="text-align:right; max-width:60%;">${t.catatan}</b></div>` : ''}
       <div class="panel-head" style="margin-top:16px;"><h3 style="font-size:13px;">Riwayat</h3></div>
       <div class="table-wrap"><table><tbody>
-        ${riwayat.length ? riwayat.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${r.type==='perpanjang'?`Bayar jasa ${r.bulan||''} bulan`:r.type==='tebus'?'Tebus barang':'Lelang/Jual'}</td><td class="mono">${rupiah(r.amount)}</td></tr>`).join('') : '<tr><td><div class="empty-state" style="padding:12px 0;">Belum ada riwayat pembayaran</div></td></tr>'}
+        ${riwayat.length ? riwayat.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${r.type==='perpanjang'?`Bayar jasa ${r.label||(r.hari?r.hari+' hari':'')}`:r.type==='tebus'?'Tebus barang':'Lelang/Jual'}</td><td class="mono">${rupiah(r.amount)}</td></tr>`).join('') : '<tr><td><div class="empty-state" style="padding:12px 0;">Belum ada riwayat pembayaran</div></td></tr>'}
       </tbody></table></div>
       ${t.status==='aktif' && titipanSisaHari(t)<0 ? `<div class="login-hint" style="margin-top:14px; border-color:var(--red); color:var(--red);">Sudah lewat jatuh tempo. Kalau nasabah tidak bisa menebus/memperpanjang, barang bisa dijual (lelang) untuk menutup dana talangan sesuai kesepakatan syariah di awal — sisa hasil jual jadi hak nasabah.</div>
       <div class="modal-foot" style="padding:0; margin-top:14px;"><button class="btn btn-outline" onclick="openLelang('${t.id}')" style="width:100%; color:var(--red); border-color:var(--red);">Tandai Terjual (Lelang)</button></div>` : ''}
@@ -2295,6 +2319,13 @@ function viewPengaturan(){
         <div class="field"><label>Alamat</label><input id="set-address" value="${s.address}"></div>
         <div class="field"><label>Nomor WhatsApp</label><input id="set-wa" value="${s.wa}"></div>
         <div class="field"><label>Inisial Logo (2 huruf)</label><input id="set-logo" maxlength="2" value="${s.logoText}"></div>
+        <button class="btn btn-primary" onclick="saveSettings()">Simpan Perubahan</button>
+      </div>
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-head"><h3>Saran Titipan Barang</h3></div>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Dipakai sebagai saran otomatis saat mencatat titipan baru — tetap bisa diubah manual per transaksi.</p>
+        <div class="field"><label>Maks. Dana Talangan (% dari taksiran)</label><input id="set-talangan-persen" type="number" min="1" max="100" step="1" value="${s.talanganPersen||80}"></div>
+        <div class="field"><label>Biaya Jasa Penitipan (% dari taksiran / bulan)</label><input id="set-jasa-persen" type="number" min="0.1" max="20" step="0.01" value="${s.jasaPersenPerBulan||1.75}"></div>
         <button class="btn btn-primary" onclick="saveSettings()">Simpan Perubahan</button>
       </div>
       ${isAdmin? `
@@ -2450,6 +2481,10 @@ async function saveSettings(){
   STATE.settings.address = document.getElementById('set-address').value.trim();
   STATE.settings.wa = document.getElementById('set-wa').value.trim();
   STATE.settings.logoText = document.getElementById('set-logo').value.trim().toUpperCase() || 'AB';
+  const talanganEl = document.getElementById('set-talangan-persen');
+  const jasaEl = document.getElementById('set-jasa-persen');
+  if(talanganEl) STATE.settings.talanganPersen = Math.min(100, Math.max(1, Number(talanganEl.value)||80));
+  if(jasaEl) STATE.settings.jasaPersenPerBulan = Math.min(20, Math.max(0.1, Number(jasaEl.value)||1.75));
   await dbSet('agent-settings', STATE.settings);
   document.getElementById('side-agent-name').textContent = STATE.settings.name;
   addLog('Pengaturan agen diperbarui', 'info');
