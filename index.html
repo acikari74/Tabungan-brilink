@@ -790,7 +790,7 @@ async function loadDataAndEnter(authUser, profileArg){
 
   STATE.settings = await dbGet('agent-settings', null);
   if(!STATE.settings){
-    STATE.settings = { name:'Agen BRILink Acik', address:'Jl. Merdeka No. 21, Medan', wa:'081234567890', logoText:'A', darkMode:false, talanganPersen:80, jasaPersenPerBulan:1.75 };
+    STATE.settings = { name:'Agen BRILink Acik', address:'Jl. Merdeka No. 21, Medan', wa:'081234567890', logoText:'A', darkMode:false, talanganPersen:80, jasaPersenPer14Hari:1.75 };
     await dbSet('agent-settings', STATE.settings);
   }
   STATE.users = await fbLoadProfiles();
@@ -2043,19 +2043,21 @@ function hitungSaranTitipan(){
   const el = document.getElementById('tt-saran');
   if(!el) return;
   const talanganPersen = STATE.settings.talanganPersen || 80;
-  const jasaPersen = STATE.settings.jasaPersenPerBulan || 1.75;
+  const jasaPersenPer14Hari = STATE.settings.jasaPersenPer14Hari || 1.75;
   const tenorEl = document.getElementById('tt-tenor');
   const tenorHari = tenorEl ? Number(tenorEl.value) : 120;
   const tenorLabel = (TITIPAN_TENOR_OPTIONS.find(o=>o.hari===tenorHari)||{}).label || `${tenorHari} hari`;
-  if(!taksiran){ el.innerHTML = `Saran: dana talangan maksimal ±${talanganPersen}% dari taksiran, biaya jasa ±${jasaPersen}% dari taksiran per bulan. <a href="#" onclick="render('pengaturan'); closeModal(); return false;" style="color:var(--accent); font-weight:600;">Ubah di Pengaturan</a>`; return; }
+  const jumlahPeriode = Math.ceil(tenorHari/14); // tiap kelipatan 14 hari dihitung 1 periode penuh
+  const persenTotal = jasaPersenPer14Hari * jumlahPeriode;
+  if(!taksiran){ el.innerHTML = `Saran: dana talangan maksimal ±${talanganPersen}% dari taksiran, biaya jasa ${jasaPersenPer14Hari}% dari taksiran per 14 hari (berkelipatan). <a href="#" onclick="render('pengaturan'); closeModal(); return false;" style="color:var(--accent); font-weight:600;">Ubah di Pengaturan</a>`; return; }
   const saranPinjaman = Math.round(taksiran*(talanganPersen/100)/1000)*1000;
-  const saranJasaPerBulan = Math.round(taksiran*(jasaPersen/100)/500)*500;
-  // Pakai nilai yang sudah diisi user di kolom jasa (kalau ada), kalau belum diisi pakai saran
-  const jasaInputEl = document.getElementById('tt-jasa');
-  const jasaPerBulanDipakai = jasaInputEl && getMoneyInput('tt-jasa') ? getMoneyInput('tt-jasa') : saranJasaPerBulan;
-  const totalJasaPeriode = hitungJasaProporsional(jasaPerBulanDipakai, tenorHari);
-  el.innerHTML = `Saran (bisa disesuaikan): dana talangan maks <b>${rupiah(saranPinjaman)}</b> (${talanganPersen}%), biaya jasa <b>${rupiah(saranJasaPerBulan)}</b>/bulan (${jasaPersen}%) dari taksiran.<br>
-    <span style="display:inline-block; margin-top:6px; padding-top:6px; border-top:1px dashed var(--border); color:var(--text-main);">Total biaya jasa untuk <b>${tenorLabel}</b> (mengikuti jangka waktu di atas): <b style="color:var(--gold);">${rupiah(totalJasaPeriode)}</b></span>`;
+  const totalJasaPeriode = Math.round(taksiran*(persenTotal/100)/500)*500;
+  // Simpan sebagai tarif setara per bulan (dipakai fitur Bayar Jasa/perpanjang nanti)
+  const saranJasaPerBulan = Math.round((totalJasaPeriode / (tenorHari/30))/500)*500;
+  el.innerHTML = `Saran (bisa disesuaikan): dana talangan maks <b>${rupiah(saranPinjaman)}</b> (${talanganPersen}%).<br>
+    <span style="display:inline-block; margin-top:6px;">Biaya jasa: <b>${jasaPersenPer14Hari}%</b> per 14 hari × <b>${jumlahPeriode} periode</b> (${tenorLabel}) = <b>${persenTotal}%</b> dari taksiran.</span><br>
+    <span style="display:inline-block; margin-top:4px;">Setara <b>${rupiah(saranJasaPerBulan)}</b> per bulan — isi ke kolom Biaya Jasa di bawah kalau mau dipakai.</span><br>
+    <span style="display:inline-block; margin-top:6px; padding-top:6px; border-top:1px dashed var(--border); color:var(--text-main);">Total biaya jasa untuk <b>${tenorLabel}</b>: <b style="color:var(--gold);">${rupiah(totalJasaPeriode)}</b></span>`;
 }
 async function saveNewTitipan(){
   const customerId = document.getElementById('tt-customer').value;
@@ -2339,7 +2341,7 @@ function viewPengaturan(){
         <div class="panel-head"><h3>Saran Titipan Barang</h3></div>
         <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Dipakai sebagai saran otomatis saat mencatat titipan baru — tetap bisa diubah manual per transaksi.</p>
         <div class="field"><label>Maks. Dana Talangan (% dari taksiran)</label><input id="set-talangan-persen" type="number" min="1" max="100" step="1" value="${s.talanganPersen||80}"></div>
-        <div class="field"><label>Biaya Jasa Penitipan (% dari taksiran / bulan)</label><input id="set-jasa-persen" type="number" min="0.1" max="20" step="0.01" value="${s.jasaPersenPerBulan||1.75}"></div>
+        <div class="field"><label>Biaya Jasa Penitipan (% dari taksiran / 14 hari)</label><input id="set-jasa-persen" type="number" min="0.1" max="20" step="0.01" value="${s.jasaPersenPer14Hari||1.75}"></div>
         <button class="btn btn-primary" onclick="saveSettings()">Simpan Perubahan</button>
       </div>
       ${isAdmin? `
@@ -2498,7 +2500,7 @@ async function saveSettings(){
   const talanganEl = document.getElementById('set-talangan-persen');
   const jasaEl = document.getElementById('set-jasa-persen');
   if(talanganEl) STATE.settings.talanganPersen = Math.min(100, Math.max(1, Number(talanganEl.value)||80));
-  if(jasaEl) STATE.settings.jasaPersenPerBulan = Math.min(20, Math.max(0.1, Number(jasaEl.value)||1.75));
+  if(jasaEl) STATE.settings.jasaPersenPer14Hari = Math.min(20, Math.max(0.1, Number(jasaEl.value)||1.75));
   await dbSet('agent-settings', STATE.settings);
   document.getElementById('side-agent-name').textContent = STATE.settings.name;
   addLog('Pengaturan agen diperbarui', 'info');
