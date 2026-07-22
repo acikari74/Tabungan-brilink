@@ -581,7 +581,7 @@ function txRow(t){
     </div>
     <div style="flex:1; min-width:0;">
       <div style="font-weight:700; font-size:13.5px;">${isSetor?'Setor Tunai':isTarik?'Tarik Tunai':'Koreksi Saldo'}</div>
-      <div style="font-size:11px; color:var(--text-muted);">${fmtDate(t.date)} • ${fmtTime(t.date)}</div>
+      <div style="font-size:11px; color:var(--text-muted);">${fmtDate(t.date)} • ${fmtTime(t.date)}${t.keterangan?` • ${t.keterangan}`:''}</div>
     </div>
     <div style="font-weight:800; font-size:13.5px; color:${color};">${isTarik?'-':'+'}${rupiah(t.amount)}</div>
   </div>`;
@@ -619,7 +619,7 @@ function goalCard(g){
   const isDone = g.status==='selesai';
   const s = goalScheme(g.target, g.tenorBulan);
   return `
-  <div class="card" style="padding:20px; margin-bottom:14px;">
+  <div class="card" style="padding:20px; margin-bottom:14px; cursor:pointer;" onclick="openGoalHistory('${g.id}')">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
       <b style="font-size:14.5px;">${g.namaBarang}</b>
       <span class="pill ${isDone?'pill-green':'pill-gray'}">${isDone?'Tercapai':`${g.tenorBulan} bulan`}</span>
@@ -639,7 +639,37 @@ function goalCard(g){
       <div style="background:#FFF7ED; border-radius:12px; padding:10px; text-align:center;"><div style="font-size:10px; color:var(--primary);">Per Minggu</div><b style="font-size:12px; color:var(--primary);">${rupiah(s.perMinggu)}</b></div>
       <div style="background:#F8FAFC; border-radius:12px; padding:10px; text-align:center;"><div style="font-size:10px; color:var(--text-muted);">Per Bulan</div><b style="font-size:12px;">${rupiah(s.perBulan)}</b></div>
     </div>` : ''}
+    <div style="text-align:center; margin-top:14px; font-size:11px; color:var(--primary); font-weight:700;">Lihat riwayat setoran →</div>
   </div>`;
+}
+
+/* ---------- Sheet generik (modal bawah) ---------- */
+function openSheet(html){
+  closeSheet();
+  const wrap = document.createElement('div');
+  wrap.id = 'app-sheet';
+  wrap.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:150; display:flex; align-items:flex-end;';
+  wrap.onclick = (e)=>{ if(e.target===wrap) closeSheet(); };
+  wrap.innerHTML = `<div class="card fade-in" style="width:100%; max-width:448px; margin:0 auto; border-radius:24px 24px 0 0; padding:24px; max-height:82vh; overflow-y:auto;" onclick="event.stopPropagation()">${html}</div>`;
+  document.body.appendChild(wrap);
+}
+function closeSheet(){ const el = document.getElementById('app-sheet'); if(el) el.remove(); }
+
+/* ---------- Riwayat setoran per program ---------- */
+function openGoalHistory(goalId){
+  const g = STATE.goals.find(x=>x.id===goalId);
+  if(!g) return;
+  const txs = STATE.transactions
+    .filter(t=>t.goalId===goalId || (!t.goalId && t.keterangan===`Program: ${g.namaBarang}`))
+    .sort((a,b)=>new Date(b.date)-new Date(a.date));
+  openSheet(`
+    <h3 style="margin:0 0 4px;">${g.namaBarang}</h3>
+    <p style="font-size:12px; color:var(--text-muted); margin:0 0 16px;">Riwayat setoran untuk program ini — total ${rupiah(g.terkumpul)}</p>
+    <div class="card" style="padding:6px 4px; margin-bottom:14px;">
+      ${txs.length ? txs.map(txRow).join('') : `<div class="empty-box" style="padding:20px;">Belum ada setoran ke program ini</div>`}
+    </div>
+    <button class="btn-outline" style="width:100%;" onclick="closeSheet()">Tutup</button>
+  `);
 }
 
 /* ---------- TITIPAN BARANG (read-only) ---------- */
