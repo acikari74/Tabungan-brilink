@@ -625,7 +625,7 @@ async function provisionCustomerLogin(customerId){
     const secName = 'cust-create-'+Date.now();
     const secApp = firebase.initializeApp(getFbConfig(), secName);
     const secAuth = secApp.auth();
-    const cred = await secAuth.createUserWithEmailAndPassword(norekToEmail(c.noRekening), normalizePhoneForAuth(c.hp));
+    const cred = await secAuth.createUserWithEmailAndPassword(norekToEmail(c.noRekening), normalizeDigits(c.noRekening));
     const newUid = cred.user.uid;
     await secAuth.signOut();
     await secApp.delete();
@@ -633,7 +633,7 @@ async function provisionCustomerLogin(customerId){
     c.authProvisioned = true;
     await dbSet('customers', [c]);
     addLog(`Akses login nasabah diaktifkan: ${c.nama} (${c.noRekening})`, 'info');
-    toast('Login nasabah aktif', `${c.nama} sekarang bisa login di app Nasabah pakai No. Rekening + No. HP terdaftar, lalu buat PIN sendiri.`);
+    toast('Login nasabah aktif', `${c.nama} sekarang bisa login di app Nasabah pakai No. Rekening sebagai Username DAN Password (isi No. Rekening di kedua kolom), lalu akan diminta buat Username & Password sendiri.`);
     return true;
   }catch(err){
     if(err.code==='auth/email-already-in-use'){
