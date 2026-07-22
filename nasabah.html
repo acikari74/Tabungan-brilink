@@ -264,7 +264,18 @@ document.getElementById('form-login').addEventListener('submit', async (e)=>{
     await auth.signInWithEmailAndPassword(norekToEmail(usernameInput), pass);
     btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
     return;
-  }catch(e1){ /* lanjut coba sebagai username custom */ }
+  }catch(e1){ /* lanjut coba jalur lain */ }
+
+  // Percobaan 1b (cadangan): akun lama yang sempat diaktifkan sebelum perbaikan,
+  // password awalnya masih berbasis No. HP, bukan No. Rekening.
+  try{
+    const normalizedPhoneGuess = normalizePhoneForAuth(pass);
+    if(normalizedPhoneGuess !== pass){
+      await auth.signInWithEmailAndPassword(norekToEmail(usernameInput), normalizedPhoneGuess);
+      btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
+      return;
+    }
+  }catch(e1b){ /* lanjut coba sebagai username custom */ }
 
   // Percobaan 2: anggap usernameInput adalah username custom yang sudah dibuat sendiri
   try{
