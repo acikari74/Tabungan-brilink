@@ -17,6 +17,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 <style>
   :root{
     --primary:#F3A616; --primary-hover:#D6900E; --secondary:#0A1D3C; --secondary-light:#163666;
@@ -193,6 +194,9 @@ firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const CUSTOMER_EMAIL_DOMAIN = '@nasabah.tabungan-app.local';
+// TEMPEL VAPID KEY DARI: Firebase Console > Project Settings > Cloud Messaging
+// > Web configuration > Web Push certificates > Generate key pair
+const VAPID_KEY = "TEMPEL_VAPID_KEY_ANDA_DI_SINI";
 
 function normalizeDigits(s){ return (s||'').replace(/\D/g,''); }
 function normalizePhoneForAuth(hp){
@@ -357,6 +361,56 @@ document.getElementById('form-setpin').addEventListener('submit', async (e)=>{
   }
 });
 
+/* ---------- NOTIFIKASI ---------- */
+function showToast(title, msg, icon){
+  const id = 'toast-'+Date.now()+Math.random().toString(36).slice(2,6);
+  const el = document.createElement('div');
+  el.id = id;
+  el.style.cssText = 'position:fixed; top:calc(env(safe-area-inset-top) + 14px); left:50%; transform:translateX(-50%) translateY(-20px); max-width:408px; width:calc(100% - 32px); background:#fff; border-radius:16px; padding:14px 16px; display:flex; gap:12px; align-items:flex-start; box-shadow:0 16px 40px rgba(15,23,42,.18); z-index:200; opacity:0; transition:transform .3s ease, opacity .3s ease;';
+  el.innerHTML = `
+    <div class="badge-3d-light" style="width:36px; height:36px; border-radius:11px; background:linear-gradient(160deg,#fff,#F1F5F9); display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0;">${icon||'🔔'}</div>
+    <div style="flex:1; min-width:0;">
+      <div style="font-weight:800; font-size:13px;">${title}</div>
+      <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${msg}</div>
+    </div>
+    <button onclick="document.getElementById('${id}').remove()" style="background:none; border:none; color:var(--text-muted); font-size:16px; padding:0 2px; flex-shrink:0;">✕</button>
+  `;
+  document.body.appendChild(el);
+  requestAnimationFrame(()=>{ el.style.opacity='1'; el.style.transform='translateX(-50%) translateY(0)'; });
+  setTimeout(()=>{
+    if(!document.getElementById(id)) return;
+    el.style.opacity='0'; el.style.transform='translateX(-50%) translateY(-20px)';
+    setTimeout(()=>el.remove(), 300);
+  }, 5000);
+  // Notifikasi OS-level juga, kalau diizinkan & tab sedang tidak aktif dilihat
+  if(document.hidden && 'Notification' in window && Notification.permission==='granted'){
+    try{ new Notification(title, { body: msg, icon: 'icons/icon-192.png' }); }catch(e){}
+  }
+}
+async function mintaIzinNotifikasi(){
+  if(!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  try{
+    if(Notification.permission==='default'){
+      const hasil = await Notification.requestPermission();
+      if(hasil!=='granted') return;
+    }
+    if(Notification.permission!=='granted') return;
+    if(VAPID_KEY.includes('TEMPEL_VAPID_KEY')){ console.warn('VAPID_KEY belum diisi, notifikasi push tidak aktif.'); return; }
+
+    const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+    const messaging = firebase.messaging();
+    const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+    if(token && STATE.customerId){
+      await db.collection('fcm_tokens').doc(token).set({ customerId: STATE.customerId, updatedAt: new Date().toISOString() });
+    }
+    // Notifikasi masuk selagi app SEDANG DIBUKA (foreground) — tampilkan toast custom kita
+    messaging.onMessage(payload=>{
+      const n = payload.notification || {};
+      showToast(n.title||'Notifikasi', n.body||'', '🔔');
+    });
+  }catch(e){ console.error('Gagal mendaftar notifikasi:', e); }
+}
+
 /* ---------- MASUK APLIKASI (real-time listeners) ---------- */
 async function enterApp(){
   showScreen('screen-main');
@@ -364,6 +418,8 @@ async function enterApp(){
   if(unsubTx) unsubTx();
   if(unsubGoals) unsubGoals();
   if(unsubTitipan) unsubTitipan();
+  mintaIzinNotifikasi();
+  let firstLoadTx=true, firstLoadGoals=true, firstLoadTitipan=true;
 
   unsubCustomer = db.collection('customers').doc(STATE.customerId).onSnapshot(doc=>{
     if(!doc.exists) return;
@@ -373,14 +429,36 @@ async function enterApp(){
     renderCurrentTab();
   });
   unsubTx = db.collection('transactions').where('customerId','==',STATE.customerId).onSnapshot(snap=>{
+    if(!firstLoadTx){
+      snap.docChanges().forEach(ch=>{
+        if(ch.type==='added'){
+          const t = ch.doc.data();
+          const isSetor = t.type==='setor';
+          showToast(isSetor?'Setoran Baru Masuk':'Penarikan Tercatat', `${isSetor?'+':'-'}${rupiah(t.amount)} — saldo Anda sudah diperbarui`, isSetor?'💰':'💸');
+        }
+      });
+    }
+    firstLoadTx=false;
     STATE.transactions = snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>new Date(b.date)-new Date(a.date));
     renderCurrentTab();
   }, err=>console.error(err));
   unsubGoals = db.collection('goals').where('customerId','==',STATE.customerId).onSnapshot(snap=>{
+    if(!firstLoadGoals){
+      snap.docChanges().forEach(ch=>{
+        if(ch.type==='added') showToast('Program Tabungan Baru', `"${ch.doc.data().namaBarang}" sudah aktif untuk Anda`, '🎯');
+      });
+    }
+    firstLoadGoals=false;
     STATE.goals = snap.docs.map(d=>({id:d.id, ...d.data()}));
     renderCurrentTab();
   }, err=>console.error(err));
   unsubTitipan = db.collection('titipan').where('customerId','==',STATE.customerId).onSnapshot(snap=>{
+    if(!firstLoadTitipan){
+      snap.docChanges().forEach(ch=>{
+        if(ch.type==='added') showToast('Titipan Barang Dicatat', `"${ch.doc.data().namaBarang}" sudah tercatat`, '📦');
+      });
+    }
+    firstLoadTitipan=false;
     STATE.titipan = snap.docs.map(d=>({id:d.id, ...d.data()}));
     renderCurrentTab();
   }, err=>console.error(err));
