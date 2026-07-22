@@ -1335,7 +1335,7 @@ async function confirmTx(type){
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printReceipt('${tx.id}')">🖨️ Cetak Struk</button></div>
   `);
 }
-async function logTransaction(c, type, amount, note){
+async function logTransaction(c, type, amount, note, extraFields){
   const before = c.saldo;
   if(type==='setor'){ c.saldo += amount; c.totalSetor += amount; }
   else if(type==='tarik'){ c.saldo -= amount; c.totalTarik += amount; }
@@ -1344,6 +1344,7 @@ async function logTransaction(c, type, amount, note){
     id: uid('TX'), customerId: c.id, type, amount: Math.abs(amount),
     date: new Date().toISOString(), staff: STATE.currentUser.name, cabang: STATE.settings.name,
     saldoSebelum: before, saldoSesudah: c.saldo, keterangan: note,
+    ...(extraFields||{}),
   };
   STATE.transactions.push(tx);
   await dbSet('customers', STATE.customers);
@@ -1834,7 +1835,7 @@ async function confirmSetorGoal(goalId){
 async function setorKeGoal(g, amount){
   const c = STATE.customers.find(x=>x.id===g.customerId);
   if(!c) return null;
-  const tx = await logTransaction(c, 'setor', amount, `Program: ${g.namaBarang}`);
+  const tx = await logTransaction(c, 'setor', amount, `Program: ${g.namaBarang}`, { goalId: g.id });
   g.terkumpul += amount;
   if(g.terkumpul >= g.target && g.status!=='selesai'){
     g.status = 'selesai';
