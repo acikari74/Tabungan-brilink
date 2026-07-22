@@ -97,11 +97,15 @@
     </div>
     <div class="shell" style="flex:1; margin-top:-38px; position:relative;">
       <div class="card" style="padding:26px;">
+        <div style="display:flex; gap:6px; background:#F1F5F9; border-radius:999px; padding:4px; margin-bottom:20px;">
+          <button type="button" class="tab-btn active" id="tab-first" onclick="setLoginMode('first')">Pertama Kali</button>
+          <button type="button" class="tab-btn" id="tab-returning" onclick="setLoginMode('returning')">Sudah Punya Akun</button>
+        </div>
         <form id="form-login">
-          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">Username</label>
-          <input class="field-input" id="li-norek" placeholder="No. Rekening / Username" style="margin:8px 0 16px;">
-          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">Password</label>
-          <input class="field-input" id="li-pass" type="password" placeholder="Password" style="margin:8px 0 20px;">
+          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);" id="li-label1">No. Rekening</label>
+          <input class="field-input" id="li-norek" placeholder="Masukkan No. Rekening" inputmode="numeric" style="margin:8px 0 16px;">
+          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);" id="li-label2">No. HP Terdaftar</label>
+          <input class="field-input" id="li-pass" type="password" placeholder="Masukkan No. HP terdaftar" style="margin:8px 0 20px;">
           <button type="submit" class="btn-primary" style="width:100%;" id="btn-login"><span>Masuk</span></button>
         </form>
         <div id="login-err" style="color:var(--danger); font-size:12.5px; margin-top:12px; text-align:center;"></div>
@@ -249,44 +253,77 @@ auth.onAuthStateChanged(async (user)=>{
 // Pertama kali: masukkan No. Rekening sebagai Username DAN Password (dua-duanya
 // sama, No. Rekening). Setelah berhasil, wajib buat Username & Password sendiri.
 // Berikutnya: login pakai Username & Password yang sudah dibuat sendiri itu.
+let loginMode = 'first';
+function setLoginMode(mode){
+  loginMode = mode;
+  document.getElementById('tab-first').classList.toggle('active', mode==='first');
+  document.getElementById('tab-returning').classList.toggle('active', mode==='returning');
+  document.getElementById('login-err').textContent = '';
+  const norekEl = document.getElementById('li-norek');
+  const passEl = document.getElementById('li-pass');
+  if(mode==='first'){
+    document.getElementById('li-label1').textContent = 'No. Rekening';
+    norekEl.placeholder = 'Masukkan No. Rekening';
+    norekEl.setAttribute('inputmode','numeric');
+    document.getElementById('li-label2').textContent = 'No. HP Terdaftar';
+    passEl.placeholder = 'Masukkan No. HP terdaftar';
+  } else {
+    document.getElementById('li-label1').textContent = 'Username';
+    norekEl.placeholder = 'Masukkan Username';
+    norekEl.removeAttribute('inputmode');
+    document.getElementById('li-label2').textContent = 'Password';
+    passEl.placeholder = 'Masukkan Password';
+  }
+}
+
 document.getElementById('form-login').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  const usernameInput = document.getElementById('li-norek').value.trim();
+  const input1 = document.getElementById('li-norek').value.trim();
   const pass = document.getElementById('li-pass').value;
   const errEl = document.getElementById('login-err');
   errEl.textContent='';
-  if(!usernameInput || !pass){ errEl.textContent='Isi Username dan Password terlebih dahulu.'; return; }
+  if(!input1 || !pass){ errEl.textContent = loginMode==='first' ? 'Isi No. Rekening dan No. HP terlebih dahulu.' : 'Isi Username dan Password terlebih dahulu.'; return; }
   const btn = document.getElementById('btn-login');
   btn.innerHTML = '<span class="spin"></span>'; btn.disabled = true;
 
-  // Percobaan 1: anggap usernameInput adalah No. Rekening (aktivasi pertama kali)
-  try{
-    await auth.signInWithEmailAndPassword(norekToEmail(usernameInput), pass);
-    btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
-    return;
-  }catch(e1){ /* lanjut coba jalur lain */ }
-
-  // Percobaan 1b (cadangan): akun lama yang sempat diaktifkan sebelum perbaikan,
-  // password awalnya masih berbasis No. HP, bukan No. Rekening.
-  try{
-    const normalizedPhoneGuess = normalizePhoneForAuth(pass);
-    if(normalizedPhoneGuess !== pass){
-      await auth.signInWithEmailAndPassword(norekToEmail(usernameInput), normalizedPhoneGuess);
+  if(loginMode==='first'){
+    // Tab "Pertama Kali": input1 = No. Rekening, pass = No. HP terdaftar
+    const email = norekToEmail(input1);
+    try{
+      await auth.signInWithEmailAndPassword(email, pass);
       btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
       return;
+    }catch(e1){
+      // Cadangan: password awal mungkin masih No. Rekening itu sendiri (akun
+      // yang dibuat sebelum sistem pakai No. HP), atau format No. HP berbeda.
+      try{
+        await auth.signInWithEmailAndPassword(email, normalizeDigits(input1));
+        btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
+        return;
+      }catch(e1c){}
+      try{
+        const normalizedPhoneGuess = normalizePhoneForAuth(pass);
+        await auth.signInWithEmailAndPassword(email, normalizedPhoneGuess);
+        btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
+        return;
+      }catch(e1b){
+        btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
+        errEl.textContent='No. Rekening atau No. HP salah.';
+        return;
+      }
     }
-  }catch(e1b){ /* lanjut coba sebagai username custom */ }
-
-  // Percobaan 2: anggap usernameInput adalah username custom yang sudah dibuat sendiri
-  try{
-    const lookup = await db.collection('username_lookup').doc(usernameInput.toLowerCase()).get();
-    if(!lookup.exists) throw new Error('username tidak ditemukan');
-    await auth.signInWithEmailAndPassword(lookup.data().email, pass);
-    btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
-    return;
-  }catch(e2){
-    btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
-    errEl.textContent='Username atau Password salah.';
+  } else {
+    // Tab "Sudah Punya Akun": input1 = Username custom, pass = Password custom
+    try{
+      const lookup = await db.collection('username_lookup').doc(input1.toLowerCase()).get();
+      if(!lookup.exists) throw new Error('username tidak ditemukan');
+      await auth.signInWithEmailAndPassword(lookup.data().email, pass);
+      btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
+      return;
+    }catch(e2){
+      btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
+      errEl.textContent='Username atau Password salah.';
+    }
   }
 });
 
