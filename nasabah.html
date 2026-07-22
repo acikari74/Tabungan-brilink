@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
-<title>Nasabah — Tabungan Customer</title>
+<title>Pasti Punya — Tabungan Nasabah</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0A1D3C">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Tabungan">
+<meta name="apple-mobile-web-app-title" content="Pasti Punya">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -92,22 +92,16 @@
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F3A616" stroke-width="2.2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
         </div>
         <div style="font-family:'Montserrat',sans-serif; font-weight:800; font-style:italic; font-size:27px; letter-spacing:-.5px; line-height:1;">PASTI <span style="color:#F3A616;">PUNYA</span></div>
-        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:9px;">
-          <div style="width:18px; height:1.5px; background:#F3A616;"></div>
-          <p style="font-size:10px; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; opacity:.85; margin:0;">by <span id="login-agent-name">Tabungan Nasabah</span></p>
-          <div style="width:18px; height:1.5px; background:#F3A616;"></div>
-        </div>
-        <p style="opacity:.7; font-size:12.5px; margin:12px 0 0;">Cek saldo & riwayat tabungan Anda kapan saja</p>
+        <p style="opacity:.7; font-size:12.5px; margin:14px 0 0;">Cek saldo & riwayat tabungan Anda kapan saja</p>
       </div>
     </div>
     <div class="shell" style="flex:1; margin-top:-38px; position:relative;">
       <div class="card" style="padding:26px;">
         <form id="form-login">
-          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">No. Rekening</label>
-          <input class="field-input" id="li-norek" placeholder="Contoh: 000123" inputmode="numeric" style="margin:8px 0 16px;">
-          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">No. HP Terdaftar (pertama kali) / PIN Anda</label>
-          <input class="field-input" id="li-pass" type="password" placeholder="No. HP atau PIN 6 digit" style="margin:8px 0 6px;">
-          <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:20px; line-height:1.5;">Pertama kali login? Pakai No. HP yang terdaftar di agen. Nanti Anda akan diminta buat PIN sendiri.</div>
+          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">Username</label>
+          <input class="field-input" id="li-norek" placeholder="No. Rekening / Username" style="margin:8px 0 16px;">
+          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">Password</label>
+          <input class="field-input" id="li-pass" type="password" placeholder="Password" style="margin:8px 0 20px;">
           <button type="submit" class="btn-primary" style="width:100%;" id="btn-login"><span>Masuk</span></button>
         </form>
         <div id="login-err" style="color:var(--danger); font-size:12.5px; margin-top:12px; text-align:center;"></div>
@@ -124,18 +118,20 @@
         <div class="badge-3d" style="width:58px; height:58px; border-radius:18px; background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.08)); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; border:1px solid rgba(255,255,255,.18);">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F3A616" stroke-width="2.2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
-        <h1 style="font-size:20px; font-weight:800; margin:0;">Buat PIN Anda</h1>
-        <p style="opacity:.75; font-size:13px; margin:6px 0 0;">PIN ini dipakai untuk login berikutnya, gantikan No. HP</p>
+        <h1 style="font-size:20px; font-weight:800; margin:0;">Buat Akun Anda</h1>
+        <p style="opacity:.75; font-size:13px; margin:6px 0 0;">Buat Username & Password sendiri untuk login berikutnya</p>
       </div>
     </div>
     <div class="shell" style="flex:1; margin-top:-38px;">
       <div class="card" style="padding:26px;">
         <form id="form-setpin">
-          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">PIN Baru (minimal 6 digit)</label>
-          <input class="field-input" id="sp-pin1" type="password" inputmode="numeric" placeholder="Buat PIN" style="margin:8px 0 16px;">
-          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">Ulangi PIN</label>
-          <input class="field-input" id="sp-pin2" type="password" inputmode="numeric" placeholder="Ulangi PIN" style="margin:8px 0 18px;">
-          <button type="submit" class="btn-primary" style="width:100%;" id="btn-setpin"><span>Simpan PIN & Masuk</span></button>
+          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">Username Baru</label>
+          <input class="field-input" id="sp-username" placeholder="Buat username" style="margin:8px 0 16px;">
+          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">Password Baru (minimal 6 karakter)</label>
+          <input class="field-input" id="sp-pin1" type="password" placeholder="Buat password" style="margin:8px 0 16px;">
+          <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">Ulangi Password</label>
+          <input class="field-input" id="sp-pin2" type="password" placeholder="Ulangi password" style="margin:8px 0 18px;">
+          <button type="submit" class="btn-primary" style="width:100%;" id="btn-setpin"><span>Simpan & Masuk</span></button>
         </form>
         <div id="setpin-err" style="color:var(--danger); font-size:12.5px; margin-top:12px; text-align:center;"></div>
       </div>
@@ -250,49 +246,64 @@ auth.onAuthStateChanged(async (user)=>{
 });
 
 /* ---------- LOGIN ---------- */
+// Pertama kali: masukkan No. Rekening sebagai Username DAN Password (dua-duanya
+// sama, No. Rekening). Setelah berhasil, wajib buat Username & Password sendiri.
+// Berikutnya: login pakai Username & Password yang sudah dibuat sendiri itu.
 document.getElementById('form-login').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  const norek = document.getElementById('li-norek').value.trim();
+  const usernameInput = document.getElementById('li-norek').value.trim();
   const pass = document.getElementById('li-pass').value;
   const errEl = document.getElementById('login-err');
   errEl.textContent='';
-  if(!norek || !pass){ errEl.textContent='Isi No. Rekening dan No. HP/PIN terlebih dahulu.'; return; }
+  if(!usernameInput || !pass){ errEl.textContent='Isi Username dan Password terlebih dahulu.'; return; }
   const btn = document.getElementById('btn-login');
   btn.innerHTML = '<span class="spin"></span>'; btn.disabled = true;
-  const email = norekToEmail(norek);
+
+  // Percobaan 1: anggap usernameInput adalah No. Rekening (aktivasi pertama kali)
   try{
-    await auth.signInWithEmailAndPassword(email, pass);
-  }catch(e1){
-    const normalized = normalizePhoneForAuth(pass);
-    if(normalized !== pass){
-      try{ await auth.signInWithEmailAndPassword(email, normalized); }
-      catch(e2){ btn.innerHTML='<span>Masuk</span>'; btn.disabled=false; errEl.textContent='No. Rekening atau No. HP/PIN salah.'; return; }
-    } else {
-      btn.innerHTML='<span>Masuk</span>'; btn.disabled=false; errEl.textContent='No. Rekening atau No. HP/PIN salah.'; return;
-    }
+    await auth.signInWithEmailAndPassword(norekToEmail(usernameInput), pass);
+    btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
+    return;
+  }catch(e1){ /* lanjut coba sebagai username custom */ }
+
+  // Percobaan 2: anggap usernameInput adalah username custom yang sudah dibuat sendiri
+  try{
+    const lookup = await db.collection('username_lookup').doc(usernameInput.toLowerCase()).get();
+    if(!lookup.exists) throw new Error('username tidak ditemukan');
+    await auth.signInWithEmailAndPassword(lookup.data().email, pass);
+    btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
+    return;
+  }catch(e2){
+    btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
+    errEl.textContent='Username atau Password salah.';
   }
-  btn.innerHTML='<span>Masuk</span>'; btn.disabled=false;
 });
 
-/* ---------- BUAT PIN ---------- */
+/* ---------- BUAT USERNAME & PASSWORD SENDIRI (aktivasi pertama kali) ---------- */
 document.getElementById('form-setpin').addEventListener('submit', async (e)=>{
   e.preventDefault();
+  const usernameBaru = document.getElementById('sp-username').value.trim().toLowerCase().replace(/[^a-z0-9._-]/g,'');
   const p1 = document.getElementById('sp-pin1').value;
   const p2 = document.getElementById('sp-pin2').value;
   const errEl = document.getElementById('setpin-err');
   errEl.textContent='';
-  if(p1.length<6){ errEl.textContent='PIN minimal 6 digit.'; return; }
-  if(p1!==p2){ errEl.textContent='PIN tidak sama, coba lagi.'; return; }
+  if(!usernameBaru){ errEl.textContent='Isi username terlebih dahulu.'; return; }
+  if(p1.length<6){ errEl.textContent='Password minimal 6 karakter.'; return; }
+  if(p1!==p2){ errEl.textContent='Password tidak sama, coba lagi.'; return; }
   const btn = document.getElementById('btn-setpin');
   btn.innerHTML='<span class="spin"></span>'; btn.disabled=true;
   try{
+    const existing = await db.collection('username_lookup').doc(usernameBaru).get();
+    if(existing.exists){ btn.innerHTML='<span>Simpan & Masuk</span>'; btn.disabled=false; errEl.textContent='Username sudah dipakai, coba username lain.'; return; }
+    const myEmail = auth.currentUser.email;
     await auth.currentUser.updatePassword(p1);
-    await db.collection('customer_profiles').doc(auth.currentUser.uid).update({ pinSet:true });
+    await db.collection('username_lookup').doc(usernameBaru).set({ email: myEmail });
+    await db.collection('customer_profiles').doc(auth.currentUser.uid).update({ pinSet:true, username: usernameBaru });
     const prof = await db.collection('customer_profiles').doc(auth.currentUser.uid).get();
     STATE.customerId = prof.data().customerId;
     await enterApp();
   }catch(err){
-    btn.innerHTML='<span>Simpan PIN & Masuk</span>'; btn.disabled=false;
+    btn.innerHTML='<span>Simpan & Masuk</span>'; btn.disabled=false;
     if(err.code==='auth/requires-recent-login'){ errEl.textContent='Sesi login sudah lama, silakan login ulang lalu coba lagi.'; }
     else errEl.textContent = err.message;
   }
@@ -325,10 +336,6 @@ async function enterApp(){
     STATE.titipan = snap.docs.map(d=>({id:d.id, ...d.data()}));
     renderCurrentTab();
   }, err=>console.error(err));
-
-  db.collection('agent_settings').doc('main').get().then(doc=>{
-    if(doc.exists) document.getElementById('login-agent-name').textContent = doc.data().name || 'Tabungan Nasabah';
-  });
 }
 
 function switchTab(tab){
@@ -550,7 +557,7 @@ function renderProfil(){
       ${profilRow('Bergabung', fmtDate(c.tglDaftar))}
       ${profilRow('Status', c.status)}
     </div>
-    <button class="btn-outline" style="width:100%; margin-bottom:10px;" onclick="openGantiPin()">Ganti PIN</button>
+    <button class="btn-outline" style="width:100%; margin-bottom:10px;" onclick="openGantiPin()">Ganti Password</button>
     <button class="btn-outline" style="width:100%; color:var(--danger); border-color:#FEE2E2;" onclick="doLogout()">Keluar</button>
     <div id="pin-modal"></div>
   `;
@@ -562,12 +569,12 @@ function openGantiPin(){
   document.getElementById('pin-modal').innerHTML = `
   <div style="position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:100; display:flex; align-items:flex-end;" onclick="if(event.target===this) closeGantiPin()">
     <div class="card fade-in" style="width:100%; max-width:448px; margin:0 auto; border-radius:24px 24px 0 0; padding:24px;" onclick="event.stopPropagation()">
-      <h3 style="margin:0 0 16px;">Ganti PIN</h3>
+      <h3 style="margin:0 0 16px;">Ganti Password</h3>
       <form id="form-gantipin">
-        <label style="font-size:12px; font-weight:700; color:var(--text-muted);">PIN Lama</label>
-        <input class="field-input" id="gp-old" type="password" inputmode="numeric" style="margin:6px 0 12px;">
-        <label style="font-size:12px; font-weight:700; color:var(--text-muted);">PIN Baru (min. 6 digit)</label>
-        <input class="field-input" id="gp-new" type="password" inputmode="numeric" style="margin:6px 0 12px;">
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted);">Password Lama</label>
+        <input class="field-input" id="gp-old" type="password" style="margin:6px 0 12px;">
+        <label style="font-size:12px; font-weight:700; color:var(--text-muted);">Password Baru (min. 6 karakter)</label>
+        <input class="field-input" id="gp-new" type="password" style="margin:6px 0 12px;">
         <div id="gp-err" style="color:var(--danger); font-size:12px; margin-bottom:10px;"></div>
         <div style="display:flex; gap:10px;">
           <button type="button" class="btn-outline" style="flex:1;" onclick="closeGantiPin()">Batal</button>
@@ -581,14 +588,14 @@ function openGantiPin(){
     const oldPin = document.getElementById('gp-old').value;
     const newPin = document.getElementById('gp-new').value;
     const errEl = document.getElementById('gp-err');
-    if(newPin.length<6){ errEl.textContent='PIN baru minimal 6 digit.'; return; }
+    if(newPin.length<6){ errEl.textContent='Password baru minimal 6 karakter.'; return; }
     try{
       const cred = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, oldPin);
       await auth.currentUser.reauthenticateWithCredential(cred);
       await auth.currentUser.updatePassword(newPin);
       closeGantiPin();
-      alert('PIN berhasil diganti.');
-    }catch(err){ errEl.textContent = err.code==='auth/wrong-password' ? 'PIN lama salah.' : err.message; }
+      alert('Password berhasil diganti.');
+    }catch(err){ errEl.textContent = err.code==='auth/wrong-password' ? 'Password lama salah.' : err.message; }
   });
 }
 function closeGantiPin(){ document.getElementById('pin-modal').innerHTML=''; }
