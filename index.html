@@ -598,6 +598,45 @@ function getMoneyInput(id){
   const n = Number(raw)||0;
   return neg ? -n : n;
 }
+
+/* ============================= PENCARIAN NASABAH (dipakai di banyak form) ============================= */
+const CUST_SEARCH_DATA = {}; // baseId -> { list, onPick }
+function custSearchFieldHTML(baseId, label, list, presetId, opts){
+  opts = opts || {};
+  CUST_SEARCH_DATA[baseId] = { list, onPick: opts.onPick || null };
+  const preset = presetId ? list.find(c=>c.id===presetId) : null;
+  const presetLabel = preset ? `${preset.nama} — ${preset.noRekening}` : '';
+  return `
+  <div class="field" style="position:relative;">
+    <label>${label}</label>
+    <input type="text" class="field-input" id="${baseId}-search" placeholder="Ketik nama atau no. rekening..." autocomplete="off"
+      value="${presetLabel}"
+      oninput="filterCustSearch('${baseId}')" onfocus="filterCustSearch('${baseId}')"
+      onblur="setTimeout(()=>{ const r=document.getElementById('${baseId}-results'); if(r) r.style.display='none'; }, 150)">
+    <input type="hidden" id="${baseId}" value="${presetId||''}">
+    <div id="${baseId}-results" style="display:none; position:absolute; z-index:40; left:0; right:0; top:100%; margin-top:4px; max-height:220px; overflow-y:auto; border:1.5px solid var(--border); border-radius:12px; background:#fff; box-shadow:0 12px 28px rgba(15,23,42,.12);"></div>
+  </div>`;
+}
+function filterCustSearch(baseId){
+  const data = CUST_SEARCH_DATA[baseId];
+  if(!data) return;
+  const q = (document.getElementById(baseId+'-search').value||'').toLowerCase().trim();
+  const resultsEl = document.getElementById(baseId+'-results');
+  const matches = (q ? data.list.filter(c=>c.nama.toLowerCase().includes(q) || c.noRekening.includes(q)) : data.list).slice(0,40);
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = matches.length ? matches.map(c=>`
+    <div style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px;" onmousedown="pickCustSearch('${baseId}','${c.id}')">
+      <b>${c.nama}</b><br><span style="color:var(--muted); font-size:11.5px;">${c.noRekening}${c.saldo!==undefined?' • '+rupiah(c.saldo):''}</span>
+    </div>`).join('') : `<div style="padding:12px 14px; color:var(--muted); font-size:12.5px;">Tidak ditemukan</div>`;
+}
+function pickCustSearch(baseId, custId){
+  const data = CUST_SEARCH_DATA[baseId];
+  const c = data.list.find(x=>x.id===custId);
+  document.getElementById(baseId).value = custId;
+  document.getElementById(baseId+'-search').value = c ? `${c.nama} — ${c.noRekening}` : '';
+  document.getElementById(baseId+'-results').style.display='none';
+  if(data.onPick) data.onPick(custId);
+}
 function fmtDate(d){ const dt = new Date(d); return dt.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
 function fmtTime(d){ const dt = new Date(d); return dt.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }
 function todayKey(){ return new Date().toISOString().slice(0,10); }
@@ -1298,12 +1337,11 @@ function txRows(list){
 function openTransaksiFor(customerId){ render('transaksi'); setTimeout(()=>openTxModal('setor', customerId), 50); }
 function openTxModal(type, presetId){
   const titleMap = {setor:'Setor Tunai', tarik:'Tarik Tunai', koreksi:'Koreksi Saldo'};
-  const options = STATE.customers.map(c=>`<option value="${c.id}" ${presetId===c.id?'selected':''}>${c.nama} — ${c.noRekening} (${rupiah(c.saldo)})</option>`).join('');
   if(!STATE.customers.length){ toast('Belum ada nasabah', 'Tambahkan nasabah terlebih dahulu.', true); return; }
   openModal(`
     <div class="modal-head"><h3>${titleMap[type]}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <div class="field"><label>Pilih Nasabah*</label><select id="tx-customer">${options}</select></div>
+      ${custSearchFieldHTML('tx-customer', 'Pilih Nasabah*', STATE.customers, presetId)}
       <div class="field"><label>Nominal (Rp)*</label><input id="tx-amount" type="text" inputmode="numeric" placeholder="0" style="font-size:18px; font-weight:700;" oninput="formatMoneyInput(this)"></div>
       <div class="amount-grid">
         ${[50000,100000,200000,500000,1000000,2000000].map(v=>`<button type="button" class="amount-chip" onclick="setMoneyInput('tx-amount',${v})">${(v/1000)}k</button>`).join('')}
@@ -1709,11 +1747,11 @@ let goalCatBuffer = 'hp';
 function openAddGoal(){
   if(!STATE.customers.length){ toast('Belum ada nasabah', 'Tambahkan nasabah terlebih dahulu di menu Nasabah.', true); return; }
   goalCatBuffer = 'hp';
-  const options = STATE.customers.filter(c=>c.status==='Aktif').map(c=>`<option value="${c.id}">${c.nama} — ${c.noRekening}</option>`).join('');
+  const options = STATE.customers.filter(c=>c.status==='Aktif');
   openModal(`
     <div class="modal-head"><h3>Buat Program Tabungan</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <div class="field"><label>Nasabah*</label><select id="g-customer">${options}</select></div>
+      ${custSearchFieldHTML('g-customer', 'Nasabah*', options)}
       <div class="field"><label>Kategori Barang*</label>
         <div class="cat-grid" id="g-cats">
           ${Object.entries(GOAL_CATS).map(([k,v])=>`<div class="cat-chip ${k==='hp'?'active':''}" data-cat="${k}" onclick="pickGoalCat('${k}')"><div>${v.emoji}</div>${v.label}</div>`).join('')}
@@ -2010,11 +2048,11 @@ let titipanCatBuffer = 'perhiasan';
 function openAddTitipan(){
   if(!STATE.customers.length){ toast('Belum ada nasabah', 'Tambahkan nasabah terlebih dahulu di menu Nasabah.', true); return; }
   titipanCatBuffer = 'perhiasan';
-  const options = STATE.customers.filter(c=>c.status==='Aktif').map(c=>`<option value="${c.id}">${c.nama} — ${c.noRekening}</option>`).join('');
+  const options = STATE.customers.filter(c=>c.status==='Aktif');
   openModal(`
     <div class="modal-head"><h3>Catat Titipan Barang Baru</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <div class="field"><label>Nasabah</label><select id="tt-customer">${options}</select></div>
+      ${custSearchFieldHTML('tt-customer', 'Nasabah', options)}
       <div class="field"><label>Kategori Barang</label>
         <div class="amount-grid" style="grid-template-columns:repeat(3,1fr);">
           ${Object.entries(TITIPAN_CATS).map(([k,v])=>`<button type="button" class="amount-chip ${k===titipanCatBuffer?'active':''}" id="tt-cat-${k}" onclick="titipanCatBuffer='${k}'; document.querySelectorAll('[id^=tt-cat-]').forEach(b=>b.classList.remove('active')); document.getElementById('tt-cat-${k}').classList.add('active');">${v.emoji} ${v.label}</button>`).join('')}
