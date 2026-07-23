@@ -18,6 +18,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
 <style>
   :root{
     --primary:#F3A616; --primary-hover:#D6900E; --secondary:#0A1D3C; --secondary-light:#163666;
@@ -111,7 +113,10 @@
         </form>
         <div id="login-err" style="color:var(--danger); font-size:12.5px; margin-top:12px; text-align:center;"></div>
       </div>
-      <div style="text-align:center; font-size:11.5px; color:var(--text-muted); margin:20px 0;">Belum punya akses login? Hubungi staff agen Anda.</div>
+      <div style="text-align:center; font-size:11.5px; color:var(--text-muted); margin:20px 0;">
+        <a href="#" onclick="openLupaAkses(); return false;" style="color:var(--secondary); font-weight:700;">Lupa Username/Password?</a>
+        &nbsp;•&nbsp; Belum punya akses login? Hubungi staff agen Anda.
+      </div>
     </div>
   </div>
 
@@ -193,6 +198,8 @@ const FIREBASE_CONFIG = {
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const functionsInstance = firebase.app().functions('asia-southeast2');
+const cloudFunctions = firebase.app().functions('asia-southeast2');
 const CUSTOMER_EMAIL_DOMAIN = '@nasabah.tabungan-app.local';
 // TEMPEL VAPID KEY DARI: Firebase Console > Project Settings > Cloud Messaging
 // > Web configuration > Web Push certificates > Generate key pair
@@ -278,6 +285,45 @@ function setLoginMode(mode){
     document.getElementById('li-label2').textContent = 'Password';
     passEl.placeholder = 'Masukkan Password';
   }
+}
+
+function openLupaAkses(){
+  openSheet(`
+    <h3 style="margin:0 0 4px;">Lupa Username/Password?</h3>
+    <p style="font-size:12.5px; color:var(--text-muted); margin:0 0 18px;">Masukkan No. Rekening & No. HP yang terdaftar di agen untuk reset akses login Anda.</p>
+    <form id="form-lupa">
+      <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">No. Rekening</label>
+      <input class="field-input" id="lupa-norek" placeholder="Masukkan No. Rekening" inputmode="numeric" style="margin:8px 0 16px;">
+      <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">No. HP Terdaftar</label>
+      <input class="field-input" id="lupa-hp" placeholder="Masukkan No. HP terdaftar" style="margin:8px 0 6px;">
+      <div id="lupa-err" style="color:var(--danger); font-size:12px; margin:8px 0;"></div>
+      <div id="lupa-ok" style="color:var(--success); font-size:12.5px; margin:8px 0; font-weight:700;"></div>
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button type="button" class="btn-outline" style="flex:1;" onclick="closeSheet()">Batal</button>
+        <button type="submit" class="btn-primary" style="flex:1;" id="btn-lupa"><span>Reset Akses</span></button>
+      </div>
+    </form>
+  `);
+  document.getElementById('form-lupa').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const norek = document.getElementById('lupa-norek').value.trim();
+    const hp = document.getElementById('lupa-hp').value.trim();
+    const errEl = document.getElementById('lupa-err');
+    const okEl = document.getElementById('lupa-ok');
+    errEl.textContent=''; okEl.textContent='';
+    if(!norek || !hp){ errEl.textContent = 'Isi No. Rekening dan No. HP terlebih dahulu.'; return; }
+    const btn = document.getElementById('btn-lupa');
+    btn.innerHTML = '<span class="spin"></span>'; btn.disabled = true;
+    try{
+      const resetFn = functionsInstance.httpsCallable('resetAccountAccess');
+      await resetFn({ norek, hp });
+      okEl.textContent = 'Berhasil! Akses Anda sudah direset. Tutup jendela ini, lalu login lagi lewat tab "Pertama Kali" pakai No. Rekening + No. HP untuk buat Username & Password baru.';
+      document.getElementById('form-lupa').style.display = 'none';
+    }catch(err){
+      btn.innerHTML = '<span>Reset Akses</span>'; btn.disabled = false;
+      errEl.textContent = err.message || 'No. Rekening atau No. HP tidak cocok dengan data kami.';
+    }
+  });
 }
 
 document.getElementById('form-login').addEventListener('submit', async (e)=>{
