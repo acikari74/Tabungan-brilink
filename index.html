@@ -412,7 +412,6 @@ tbody tr:hover{background:var(--bg);}
       <div class="nav-item" data-view="buku"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Buku Tabungan</div>
       <div class="nav-item" data-view="kartu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="3"/><path d="M1 10h22"/></svg>Kartu Member</div>
       <div class="nav-item" data-view="program"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Program Tabungan</div>
-      <div class="nav-item" data-view="titipan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.91 8.84L8.56 21.19a4 4 0 0 1-5.65-5.65l9.19-9.19a2.5 2.5 0 0 1 3.54 3.54L7 18.36"/></svg>Titipan Barang</div>
     </div>
     <div class="nav-group">
       <div class="nav-label">Laporan &amp; Sistem</div>
@@ -538,7 +537,6 @@ async function dbGet(key, fallback){
     if(key==='customers') return await fbLoadCollection('customers', 'tglDaftar');
     if(key==='transactions') return await fbLoadCollection('transactions', 'date');
     if(key==='goals') return await fbLoadCollection('goals', 'mulai');
-    if(key==='titipan') return await fbLoadCollection('titipan', 'mulai');
     if(key==='logs') return await fbLoadCollection('logs', 'time', 'desc');
     return fallback;
   }catch(e){ console.error(e); return fallback; }
@@ -553,7 +551,6 @@ async function dbSet(key, value){
     if(key==='customers') return fbSaveArray('customers', value);
     if(key==='transactions') return fbSaveArray('transactions', value);
     if(key==='goals') return fbSaveArray('goals', value);
-    if(key==='titipan') return fbSaveArray('titipan', value);
     if(key==='logs'){ if(value && value.length) return fbSaveOne('logs', value[0]); return; }
   }catch(e){ console.error(e); toast('Gagal menyimpan ke database', String(e), true); }
 }
@@ -566,7 +563,6 @@ let STATE = {
   transactions: [],
   logs: [],
   goals: [],
-  titipan: [],
   currentUser: null,
   view: 'dashboard',
   darkMode: false,
@@ -837,7 +833,6 @@ async function loadDataAndEnter(authUser, profileArg){
   STATE.transactions = await dbGet('transactions', []);
   STATE.logs = await dbGet('logs', []);
   STATE.goals = await dbGet('goals', []);
-  STATE.titipan = await dbGet('titipan', []);
   STATE.darkMode = STATE.settings.darkMode || false;
   applyDarkMode();
 
@@ -924,7 +919,6 @@ function render(view){
   else if(view==='buku') root.innerHTML = viewBuku();
   else if(view==='kartu') root.innerHTML = viewKartu();
   else if(view==='program') root.innerHTML = viewProgram();
-  else if(view==='titipan') root.innerHTML = viewTitipan();
   else if(view==='laporan') root.innerHTML = viewLaporan('harian');
   else if(view==='aktivitas') root.innerHTML = viewAktivitas();
   else if(view==='pengaturan') root.innerHTML = viewPengaturan();
@@ -1186,9 +1180,8 @@ async function deleteNasabah(customerId){
     return;
   }
   const activeGoals = STATE.goals.filter(g=>g.customerId===customerId && g.status==='aktif').length;
-  const activeTitipan = STATE.titipan.filter(t=>t.customerId===customerId && t.status==='aktif').length;
-  if(activeGoals>0 || activeTitipan>0){
-    toast('Tidak bisa dihapus', `Nasabah ini masih punya ${activeGoals} program aktif dan/atau ${activeTitipan} titipan aktif. Selesaikan dulu sebelum menghapus.`, true);
+  if(activeGoals>0){
+    toast('Tidak bisa dihapus', `Nasabah ini masih punya ${activeGoals} program aktif. Selesaikan dulu sebelum menghapus.`, true);
     return;
   }
   if(!confirm(`Yakin hapus nasabah "${c.nama}" (${c.noRekening})?\n\nRiwayat transaksi lama tetap tersimpan untuk audit, tapi nasabah ini tidak akan muncul lagi di daftar dan tidak bisa login ke app Nasabah.\n\nTindakan ini TIDAK BISA dibatalkan.`)) return;
@@ -1452,45 +1445,6 @@ function printReceipt(txId){
     ${t.keterangan ? `<div class="line"></div><div class="muted">Ket: ${t.keterangan}</div>` : ''}
   `;
   openReceiptPrint('Struk '+t.id, body);
-}
-
-/* ---------- Cetak struk titipan barang ---------- */
-function printTitipanReceipt(titipanId, eventType, extra){
-  const t = STATE.titipan.find(x=>x.id===titipanId);
-  if(!t){ toast('Struk tidak ditemukan', 'Data titipan ini tidak ditemukan.', true); return; }
-  const c = STATE.customers.find(x=>x.id===t.customerId);
-  const cat = TITIPAN_CATS[t.kategori] || TITIPAN_CATS.lain;
-  const labelMap = { baru:'TITIPAN BARANG BARU', jasa:'BAYAR JASA PENITIPAN', tebus:'TEBUS BARANG', lelang:'BARANG TERJUAL/LELANG' };
-  let amountBlock = '';
-  if(eventType==='baru'){
-    amountBlock = `<div class="center muted">Dana Talangan Diterima</div><div class="center big">+${rupiah(t.pinjaman)}</div>`;
-  } else if(eventType==='jasa'){
-    amountBlock = `<div class="center muted">Jasa Penitipan Dibayar (${extra.label})</div><div class="center big">${rupiah(extra.total)}</div>`;
-  } else if(eventType==='tebus'){
-    amountBlock = `<div class="center muted">Total Ditebus</div><div class="center big">${rupiah(extra.total)}</div>`;
-  } else if(eventType==='lelang'){
-    amountBlock = `<div class="center muted">Harga Jual/Lelang</div><div class="center big">${rupiah(extra.harga)}</div>`;
-  }
-  const body = `
-    <div class="center b">${labelMap[eventType]||'TITIPAN BARANG'}</div>
-    <div class="line"></div>
-    ${receiptRow('Tanggal', fmtDate(new Date())+' '+fmtTime(new Date()))}
-    ${receiptRow('No. Titipan', t.id)}
-    ${receiptRow('Staff', STATE.currentUser.name)}
-    <div class="line"></div>
-    ${receiptRow('Nasabah', c?c.nama:'—', true)}
-    ${receiptRow('No. Rekening', c?c.noRekening:'—')}
-    <div class="line"></div>
-    ${receiptRow('Barang', cat.emoji+' '+t.namaBarang)}
-    <div class="line"></div>
-    ${amountBlock}
-    <div class="line"></div>
-    ${receiptRow('Dana Talangan', rupiah(t.pinjaman))}
-    ${eventType==='baru' ? receiptRow('Total Biaya Jasa', rupiah(t.totalJasa), true) : ''}
-    ${eventType==='tebus' ? receiptRow('Biaya Jasa Titip', rupiah(extra.jasa||0), true) : ''}
-    ${eventType!=='tebus'&&eventType!=='lelang' ? receiptRow('Jatuh Tempo', fmtDate(titipanJatuhTempo(t))) : ''}
-  `;
-  openReceiptPrint('Struk Titipan '+t.id, body);
 }
 
 /* ---------- Cetak struk info Program Tabungan baru (tanpa uang) ---------- */
@@ -1942,370 +1896,6 @@ async function deleteGoal(goalId){
   render('program');
 }
 
-/* ============================= TITIPAN BARANG (Rahn Syariah — tanpa bunga) ============================= */
-// Konsep: nasabah menitipkan barang berharga sebagai jaminan, agen memberi
-// dana talangan (pinjaman). Bukan bunga — nasabah membayar BIAYA JASA
-// PENITIPAN (ijarah) untuk keamanan & penyimpanan barangnya. Staff cukup
-// isi satu angka "biaya jasa per 14 hari", lalu sistem otomatis kasih tahu
-// totalnya untuk tiap pilihan jangka waktu (14 hari, 1 bulan, dst) secara
-// proporsional. Kalau lewat jatuh tempo dan tidak ditebus/diperpanjang,
-// barang boleh dijual (lelang) — sisa hasil jual jadi hak nasabah.
-const TITIPAN_CATS = {
-  perhiasan:  { label:'Perhiasan',       emoji:'💍' },
-  elektronik: { label:'Elektronik',      emoji:'📱' },
-  kendaraan:  { label:'BPKB Kendaraan',  emoji:'🏍️' },
-  dokumen:    { label:'Dokumen/Sertifikat', emoji:'📄' },
-  lain:       { label:'Lainnya',         emoji:'📦' },
-};
-const TITIPAN_TENOR_OPTIONS = [
-  { label:'14 hari',  hari:14 },
-  { label:'1 bulan',  hari:30 },
-  { label:'2 bulan',  hari:60 },
-  { label:'3 bulan',  hari:90 },
-  { label:'4 bulan',  hari:120 },
-  { label:'6 bulan',  hari:180 },
-  { label:'12 bulan', hari:360 },
-];
-function titipanTenorLabel(hari){ return (TITIPAN_TENOR_OPTIONS.find(o=>o.hari===hari)||{}).label || `${hari} hari`; }
-function titipanJatuhTempo(t){
-  const d = new Date(t.mulai);
-  d.setDate(d.getDate() + t.tenorHari);
-  return d;
-}
-function titipanSisaHari(t){
-  const diff = titipanJatuhTempo(t) - new Date();
-  return Math.ceil(diff/86400000);
-}
-function titipanStatusLabel(t){
-  if(t.status==='ditebus') return {text:'Sudah Ditebus', cls:'green'};
-  if(t.status==='terjual') return {text:'Terjual/Lelang', cls:'gray'};
-  const sisa = titipanSisaHari(t);
-  if(sisa<0) return {text:`Lewat Jatuh Tempo ${Math.abs(sisa)} hari`, cls:'red'};
-  if(sisa<=7) return {text:`Jatuh Tempo ${sisa} hari lagi`, cls:'red'};
-  return {text:`Aktif — ${sisa} hari lagi`, cls:'green'};
-}
-
-function viewTitipan(){
-  const active = STATE.titipan.filter(t=>t.status==='aktif');
-  const overdue = active.filter(t=>titipanSisaHari(t)<0);
-  const totalPinjaman = active.reduce((a,t)=>a+t.pinjaman,0);
-  const totalJasa = STATE.titipan.reduce((a,t)=>a+(t.totalJasaDibayar||0),0);
-  return `
-  <div class="page-head">
-    <div><h2>Titipan Barang (Syariah)</h2><p>Dana talangan dengan jaminan barang — biaya jasa penitipan, bukan bunga</p></div>
-    <div class="toolbar">
-      <button class="btn btn-primary btn-sm" onclick="openAddTitipan()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Titipan Baru</button>
-    </div>
-  </div>
-  <div class="grid-stats" style="grid-template-columns:repeat(4,1fr);">
-    ${statCard('Titipan Aktif', active.length, 'activity', 'var(--accent)', 'rgba(37,99,168,.1)')}
-    ${statCard('Lewat Jatuh Tempo', overdue.length, 'users', 'var(--red)', 'var(--red-bg)')}
-    ${statCard('Dana Talangan Berjalan', rupiah(totalPinjaman), 'wallet', 'var(--gold)', 'rgba(201,162,39,.12)')}
-    ${statCard('Total Jasa Terkumpul', rupiah(totalJasa), 'arrow-down', 'var(--green)', 'var(--green-bg)')}
-  </div>
-  <div class="login-hint" style="margin-bottom:18px;">Skema syariah: biaya jasa penitipan (ijarah) diisi manual sesuai kesepakatan dengan nasabah — bukan bunga dari dana talangan.</div>
-  ${STATE.titipan.length ? `<div class="goal-grid">${[...STATE.titipan].sort((a,b)=> (a.status==='aktif'?-1:1) - (b.status==='aktif'?-1:1) || new Date(b.mulai)-new Date(a.mulai)).map(titipanCard).join('')}</div>`
-  : `<div class="panel"><div class="empty-state">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.91 8.84L8.56 21.19a4 4 0 0 1-5.65-5.65l9.19-9.19a2.5 2.5 0 0 1 3.54 3.54L7 18.36"/></svg>
-      <div style="font-weight:600; margin-bottom:4px;">Belum ada titipan barang</div>
-      <div style="font-size:12px; max-width:380px; margin:0 auto 16px;">Catat barang yang dititipkan nasabah sebagai jaminan dana talangan, lengkap dengan biaya jasa penitipan dan jatuh temponya.</div>
-      <button class="btn btn-primary btn-sm" onclick="openAddTitipan()">+ Catat Titipan Pertama</button>
-    </div></div>`}`;
-}
-
-function titipanCard(t){
-  const c = STATE.customers.find(x=>x.id===t.customerId);
-  const cat = TITIPAN_CATS[t.kategori] || TITIPAN_CATS.lain;
-  const st = titipanStatusLabel(t);
-  const isOpen = t.status==='aktif';
-  return `
-  <div class="goal-card ${!isOpen?'done':''}">
-    <div class="goal-head">
-      <div class="goal-icon lain">${cat.emoji}</div>
-      <div style="flex:1; min-width:0;">
-        <b>${t.namaBarang}</b>
-        <span>${c ? c.nama : '—'} • Mulai ${fmtDate(t.mulai)}</span>
-      </div>
-      <span class="pill ${st.cls}">${st.text}</span>
-    </div>
-    <div class="goal-nums"><span style="color:var(--muted);">Taksiran Barang</span><b>${t.taksiran ? rupiah(t.taksiran) : '—'}</b></div>
-    <div class="goal-nums"><span style="color:var(--muted);">Dana Talangan</span><b>${rupiah(t.pinjaman)}</b></div>
-    <div class="goal-nums" style="margin-bottom:14px;"><span style="color:var(--muted);">Total Biaya Jasa (${titipanTenorLabel(t.tenorHari)})</span><b style="color:var(--gold);">${rupiah(t.totalJasa)}</b></div>
-    <div class="goal-foot">
-      ${isOpen
-        ? `<button class="btn btn-green btn-sm" onclick="openBayarJasa('${t.id}')">Bayar Jasa</button>
-           <button class="btn btn-primary btn-sm" onclick="openTebus('${t.id}')">Tebus Barang</button>
-           <button class="btn btn-outline btn-sm" onclick="openDetailTitipan('${t.id}')">Rincian</button>`
-        : `<button class="btn btn-outline btn-sm" onclick="openDetailTitipan('${t.id}')">Rincian</button>
-           <button class="btn btn-outline btn-sm" onclick="deleteTitipan('${t.id}')">Hapus Riwayat</button>`}
-    </div>
-  </div>`;
-}
-
-/* ---------- Catat titipan baru ---------- */
-let titipanCatBuffer = 'perhiasan';
-function openAddTitipan(){
-  if(!STATE.customers.length){ toast('Belum ada nasabah', 'Tambahkan nasabah terlebih dahulu di menu Nasabah.', true); return; }
-  titipanCatBuffer = 'perhiasan';
-  const options = STATE.customers.filter(c=>c.status==='Aktif');
-  openModal(`
-    <div class="modal-head"><h3>Catat Titipan Barang Baru</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      ${custSearchFieldHTML('tt-customer', 'Nasabah', options)}
-      <div class="field"><label>Kategori Barang</label>
-        <div class="amount-grid" style="grid-template-columns:repeat(3,1fr);">
-          ${Object.entries(TITIPAN_CATS).map(([k,v])=>`<button type="button" class="amount-chip ${k===titipanCatBuffer?'active':''}" id="tt-cat-${k}" onclick="titipanCatBuffer='${k}'; document.querySelectorAll('[id^=tt-cat-]').forEach(b=>b.classList.remove('active')); document.getElementById('tt-cat-${k}').classList.add('active');">${v.emoji} ${v.label}</button>`).join('')}
-        </div>
-      </div>
-      <div class="field"><label>Nama/Deskripsi Barang</label><input id="tt-nama" placeholder="Contoh: Kalung emas 10 gram"></div>
-      <div class="field"><label>Nilai Taksiran Barang (Rp)*</label><input id="tt-taksiran" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this); hitungSaranDariTaksiran();" style="font-weight:700;"></div>
-      <div id="tt-saran-taksiran" class="login-hint"></div>
-      <div class="field"><label>Dana Talangan Diberikan (Rp)*</label><input id="tt-pinjaman" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this)" style="font-weight:700;"></div>
-      <div class="field"><label>Biaya Jasa Penitipan / 14 Hari (Rp)*</label><input id="tt-jasa14" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this); tampilkanReferensiJasa();" style="font-weight:700;"></div>
-      <div id="tt-referensi" class="login-hint"></div>
-      <div class="field"><label>Jangka Waktu</label>
-        <select id="tt-tenor" onchange="tampilkanReferensiJasa()">
-          ${TITIPAN_TENOR_OPTIONS.map(o=>`<option value="${o.hari}" ${o.hari===120?'selected':''}>${o.label}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field"><label>Catatan (opsional)</label><input id="tt-catatan" placeholder="Kondisi barang, kelengkapan, dll"></div>
-    </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveNewTitipan()">Simpan Titipan</button></div>
-  `);
-  document.getElementById(`tt-cat-${titipanCatBuffer}`).classList.add('active');
-  hitungSaranDariTaksiran();
-  tampilkanReferensiJasa();
-}
-function hitungSaranDariTaksiran(){
-  const taksiran = getMoneyInput('tt-taksiran');
-  const el = document.getElementById('tt-saran-taksiran');
-  if(!el) return;
-  const talanganPersen = STATE.settings.talanganPersen || 80;
-  const jasaPersen = STATE.settings.jasaPersenPer14Hari || 1.75;
-  if(!taksiran){ el.innerHTML = `Isi taksiran untuk melihat saran dana talangan &amp; biaya jasa otomatis (bisa diubah manual). <a href="#" onclick="render('pengaturan'); closeModal(); return false;" style="color:var(--accent); font-weight:600;">Atur persennya</a>`; return; }
-  const saranPinjaman = Math.round(taksiran*(talanganPersen/100)/1000)*1000;
-  const saranJasa14Hari = Math.round(taksiran*(jasaPersen/100)/500)*500;
-  el.innerHTML = `Saran (${talanganPersen}% &amp; ${jasaPersen}% dari taksiran — isi manual ke kolom di bawah kalau mau dipakai): dana talangan <b>${rupiah(saranPinjaman)}</b>, biaya jasa <b>${rupiah(saranJasa14Hari)}</b> per 14 hari.`;
-  tampilkanReferensiJasa();
-}
-function totalJasaUntuk(tarifPer14Hari, hari){ return Math.round((tarifPer14Hari * (hari/14)) / 500) * 500; }
-function tampilkanReferensiJasa(){
-  const el = document.getElementById('tt-referensi');
-  if(!el) return;
-  const tarif = getMoneyInput('tt-jasa14');
-  const tenorEl = document.getElementById('tt-tenor');
-  const tenorHari = tenorEl ? Number(tenorEl.value) : 120;
-  if(!tarif){ el.innerHTML = 'Isi biaya jasa per 14 hari dulu, nanti otomatis muncul perkiraan untuk tiap jangka waktu.'; return; }
-  const baris = TITIPAN_TENOR_OPTIONS.map(o=>`${o.label}: <b${o.hari===tenorHari?' style="color:var(--gold);"':''}>${rupiah(totalJasaUntuk(tarif,o.hari))}</b>`).join(' &nbsp;•&nbsp; ');
-  el.innerHTML = `Perkiraan total biaya jasa: ${baris}`;
-}
-async function saveNewTitipan(){
-  const customerId = document.getElementById('tt-customer').value;
-  const nama = document.getElementById('tt-nama').value.trim();
-  const taksiran = getMoneyInput('tt-taksiran');
-  const pinjaman = getMoneyInput('tt-pinjaman');
-  const tarifJasaPer14Hari = getMoneyInput('tt-jasa14');
-  const tenorHari = Number(document.getElementById('tt-tenor').value);
-  const catatan = document.getElementById('tt-catatan').value.trim();
-  if(!customerId || !nama || !taksiran || !pinjaman || !tarifJasaPer14Hari){ toast('Data belum lengkap', 'Nasabah, nama barang, taksiran, dana talangan, dan biaya jasa wajib diisi.', true); return; }
-  if(pinjaman > taksiran){ toast('Dana talangan terlalu besar', 'Dana talangan tidak boleh melebihi nilai taksiran barang.', true); return; }
-  const c = STATE.customers.find(x=>x.id===customerId);
-  const tenorLabel = titipanTenorLabel(tenorHari);
-  const totalJasa = totalJasaUntuk(tarifJasaPer14Hari, tenorHari);
-  const t = {
-    id: uid('TT'), customerId, kategori: titipanCatBuffer, namaBarang: nama,
-    taksiran, pinjaman, tarifJasaPer14Hari, totalJasa, tenorHari,
-    mulai: new Date().toISOString(), status:'aktif',
-    totalJasaDibayar: 0, catatan, riwayat: [],
-  };
-  STATE.titipan.push(t);
-  await dbSet('titipan', [t]);
-  addLog(`Titipan barang baru: ${nama} (${c?c.nama:''}) — dana talangan ${rupiah(pinjaman)}`, 'info');
-  closeModal();
-  render('titipan');
-  openModal(`
-    <div class="modal-head"><h3>✅ Titipan Dicatat</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(pinjaman)}</b><br><span>Dana talangan — ${nama} (${c?c.nama:''})</span></div></div>
-      <div class="sim-row"><span>Jangka Waktu</span><b>${tenorLabel}</b></div>
-      <div class="sim-row"><span>Total Biaya Jasa</span><b style="color:var(--gold);">${rupiah(totalJasa)}</b></div>
-    </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','baru')">🖨️ Cetak Struk</button></div>
-  `);
-}
-
-/* ---------- Bayar jasa penitipan (perpanjang) ---------- */
-function openBayarJasa(id){
-  const t = STATE.titipan.find(x=>x.id===id);
-  if(!t) return;
-  const c = STATE.customers.find(x=>x.id===t.customerId);
-  openModal(`
-    <div class="modal-head"><h3>Bayar Jasa Penitipan</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <div class="login-hint">${t.namaBarang} — ${c?c.nama:''}<br>Biaya jasa per 14 hari: <b>${rupiah(t.tarifJasaPer14Hari)}</b></div>
-      <div class="field"><label>Perpanjang Selama</label>
-        <select id="bj-tenor" onchange="const h=Number(this.value); document.getElementById('bj-jasa').value = totalJasaUntuk(${t.tarifJasaPer14Hari}, h).toLocaleString('id-ID');">
-          ${TITIPAN_TENOR_OPTIONS.map(o=>`<option value="${o.hari}" ${o.hari===14?'selected':''}>${o.label}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field"><label>Biaya Jasa untuk Perpanjangan Ini (Rp)*</label><input id="bj-jasa" type="text" inputmode="numeric" value="${totalJasaUntuk(t.tarifJasaPer14Hari,14).toLocaleString('id-ID')}" oninput="formatMoneyInput(this)" style="font-weight:700;"></div>
-      <div class="login-hint">Sudah otomatis dihitung dari biaya jasa per 14 hari — tetap bisa diubah manual kalau ada kesepakatan lain.</div>
-    </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveBayarJasa('${t.id}')">Konfirmasi Pembayaran</button></div>
-  `);
-}
-async function saveBayarJasa(id){
-  const t = STATE.titipan.find(x=>x.id===id);
-  if(!t) return;
-  const hari = Number(document.getElementById('bj-tenor').value);
-  const total = getMoneyInput('bj-jasa');
-  if(!total){ toast('Data belum lengkap', 'Isi biaya jasa perpanjangan terlebih dahulu.', true); return; }
-  const label = titipanTenorLabel(hari);
-  t.totalJasaDibayar = (t.totalJasaDibayar||0) + total;
-  t.riwayat = t.riwayat||[];
-  t.riwayat.push({ id: uid('R'), type:'perpanjang', amount: total, hari, label, date: new Date().toISOString() });
-  // Perpanjang jatuh tempo sejumlah hari yang dibayar, dan jadikan biaya jasa acuan baru
-  t.tenorHari = t.tenorHari + hari;
-  t.totalJasa = total;
-  await dbSet('titipan', [t]);
-  const c = STATE.customers.find(x=>x.id===t.customerId);
-  addLog(`Jasa penitipan dibayar: ${t.namaBarang} (${c?c.nama:''}) — ${rupiah(total)} untuk ${label}`, 'setor');
-  closeModal();
-  render('titipan');
-  openModal(`
-    <div class="modal-head"><h3>✅ Pembayaran Tercatat</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(total)}</b><br><span>Jasa penitipan ${label} — ${t.namaBarang} (${c?c.nama:''})</span></div></div>
-    </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','jasa',{label:'${label}', total:${total}})">🖨️ Cetak Struk</button></div>
-  `);
-}
-
-/* ---------- Tebus barang (lunasi dana talangan) ---------- */
-function openTebus(id){
-  const t = STATE.titipan.find(x=>x.id===id);
-  if(!t) return;
-  const c = STATE.customers.find(x=>x.id===t.customerId);
-  const sisaHari = titipanSisaHari(t);
-  const sisaJasa = Math.max(0, (t.totalJasa||0) - (t.totalJasaDibayar||0));
-  const totalAwal = t.pinjaman + sisaJasa;
-  openModal(`
-    <div class="modal-head"><h3>Tebus Barang</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <div class="login-hint">${t.namaBarang} — ${c?c.nama:''}</div>
-      <div class="sim-row"><span>Dana Talangan (pokok)</span><b>${rupiah(t.pinjaman)}</b></div>
-      <div class="sim-row"><span>Biaya Jasa Titip (belum dibayar)</span><b>${rupiah(sisaJasa)}</b></div>
-      ${sisaHari<0 ? `<div class="login-hint" style="margin-top:10px; border-color:var(--red); color:var(--red);">Sudah lewat jatuh tempo ${Math.abs(sisaHari)} hari. Kalau ada tambahan jasa perpanjangan yang perlu ditambahkan, isi di bawah.</div>` : ''}
-      <div class="field" style="margin-top:12px;"><label>Tambahan Jasa Lewat Tempo (Rp, opsional)</label><input id="tb-jasa-tunggak" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this); document.getElementById('tb-total').textContent = rupiahJS(${totalAwal} + getMoneyInput('tb-jasa-tunggak'));"></div>
-      <div class="sim-row big"><div><b id="tb-total">${rupiah(totalAwal)}</b><br><span>Total yang harus dibayar nasabah untuk menebus</span></div></div>
-      <div class="login-hint" style="margin-top:10px;">Setelah dikonfirmasi, barang dianggap sudah dikembalikan ke nasabah dan status titipan menjadi "Sudah Ditebus".</div>
-    </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveTebus('${t.id}')">Konfirmasi Tebus</button></div>
-  `);
-}
-function rupiahJS(n){ return rupiah(n); }
-async function saveTebus(id){
-  const t = STATE.titipan.find(x=>x.id===id);
-  if(!t) return;
-  const sisaJasa = Math.max(0, (t.totalJasa||0) - (t.totalJasaDibayar||0));
-  const jasaTambahan = getMoneyInput('tb-jasa-tunggak');
-  const totalJasaDibayarSekarang = sisaJasa + jasaTambahan;
-  const totalTebus = t.pinjaman + totalJasaDibayarSekarang;
-  t.status = 'ditebus';
-  t.riwayat = t.riwayat||[];
-  if(totalJasaDibayarSekarang>0) t.totalJasaDibayar = (t.totalJasaDibayar||0) + totalJasaDibayarSekarang;
-  t.riwayat.push({ id: uid('R'), type:'tebus', amount: totalTebus, date: new Date().toISOString() });
-  await dbSet('titipan', [t]);
-  const c = STATE.customers.find(x=>x.id===t.customerId);
-  addLog(`Barang ditebus: ${t.namaBarang} (${c?c.nama:''}) — total ${rupiah(totalTebus)}`, 'tarik');
-  closeModal();
-  render('titipan');
-  openModal(`
-    <div class="modal-head"><h3>✅ Barang Ditebus</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(totalTebus)}</b><br><span>${t.namaBarang} — ${c?c.nama:''}</span></div></div>
-      <div class="sim-row"><span>Dana Talangan (pokok)</span><b>${rupiah(t.pinjaman)}</b></div>
-      <div class="sim-row"><span>Biaya Jasa Titip</span><b>${rupiah(totalJasaDibayarSekarang)}</b></div>
-    </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','tebus',{total:${totalTebus}, jasa:${totalJasaDibayarSekarang}})">🖨️ Cetak Struk</button></div>
-  `);
-}
-
-/* ---------- Rincian & lelang (kalau lewat jatuh tempo & tidak ditebus) ---------- */
-function openDetailTitipan(id){
-  const t = STATE.titipan.find(x=>x.id===id);
-  if(!t) return;
-  const c = STATE.customers.find(x=>x.id===t.customerId);
-  const cat = TITIPAN_CATS[t.kategori] || TITIPAN_CATS.lain;
-  const st = titipanStatusLabel(t);
-  const riwayat = (t.riwayat||[]).slice().reverse();
-  openModal(`
-    <div class="modal-head"><h3>${cat.emoji} ${t.namaBarang}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Nasabah</span><b>${c?c.nama:'—'}</b></div>
-      <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Status</span><span class="pill ${st.cls}">${st.text}</span></div>
-      ${t.taksiran ? `<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Taksiran Barang</span><b>${rupiah(t.taksiran)}</b></div>` : ''}
-      <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Dana Talangan</span><b>${rupiah(t.pinjaman)}</b></div>
-      <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Total Biaya Jasa</span><b>${rupiah(t.totalJasa)} / ${titipanTenorLabel(t.tenorHari)}</b></div>
-      <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Total Jasa Terbayar</span><b style="color:var(--green);">${rupiah(t.totalJasaDibayar||0)}</b></div>
-      ${t.catatan ? `<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="color:var(--muted); font-size:13px;">Catatan</span><b style="text-align:right; max-width:60%;">${t.catatan}</b></div>` : ''}
-      <div class="panel-head" style="margin-top:16px;"><h3 style="font-size:13px;">Riwayat</h3></div>
-      <div class="table-wrap"><table><tbody>
-        ${riwayat.length ? riwayat.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${r.type==='perpanjang'?`Bayar jasa ${r.label||(r.hari?r.hari+' hari':'')}`:r.type==='tebus'?'Tebus barang':'Lelang/Jual'}</td><td class="mono">${rupiah(r.amount)}</td></tr>`).join('') : '<tr><td><div class="empty-state" style="padding:12px 0;">Belum ada riwayat pembayaran</div></td></tr>'}
-      </tbody></table></div>
-      ${t.status==='aktif' && titipanSisaHari(t)<0 ? `<div class="login-hint" style="margin-top:14px; border-color:var(--red); color:var(--red);">Sudah lewat jatuh tempo. Kalau nasabah tidak bisa menebus/memperpanjang, barang bisa dijual (lelang) untuk menutup dana talangan sesuai kesepakatan syariah di awal — sisa hasil jual jadi hak nasabah.</div>
-      <div class="modal-foot" style="padding:0; margin-top:14px;"><button class="btn btn-outline" onclick="openLelang('${t.id}')" style="width:100%; color:var(--red); border-color:var(--red);">Tandai Terjual (Lelang)</button></div>` : ''}
-    </div>
-  `);
-}
-function openLelang(id){
-  const t = STATE.titipan.find(x=>x.id===id);
-  if(!t) return;
-  openModal(`
-    <div class="modal-head"><h3>Tandai Barang Terjual</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <div class="login-hint">${t.namaBarang} — dana talangan ${rupiah(t.pinjaman)}</div>
-      <div class="field"><label>Harga Jual/Lelang (Rp)*</label><input id="ll-harga" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this)" style="font-weight:700;"></div>
-      <div class="login-hint" style="margin-top:10px;">Sisa hasil jual setelah menutup dana talangan (dan jasa tertunggak bila ada) adalah hak nasabah dan wajib dikembalikan — sesuai prinsip syariah.</div>
-    </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveLelang('${t.id}')">Konfirmasi Terjual</button></div>
-  `);
-}
-async function saveLelang(id){
-  const t = STATE.titipan.find(x=>x.id===id);
-  if(!t) return;
-  const harga = getMoneyInput('ll-harga');
-  if(!harga){ toast('Data belum lengkap', 'Isi harga jual terlebih dahulu.', true); return; }
-  t.status = 'terjual';
-  t.riwayat = t.riwayat||[];
-  t.riwayat.push({ id: uid('R'), type:'lelang', amount: harga, date: new Date().toISOString() });
-  await dbSet('titipan', [t]);
-  const c = STATE.customers.find(x=>x.id===t.customerId);
-  const sisaHakNasabah = Math.max(0, harga - t.pinjaman);
-  addLog(`Barang dilelang: ${t.namaBarang} (${c?c.nama:''}) — terjual ${rupiah(harga)}`, 'info');
-  closeModal();
-  render('titipan');
-  openModal(`
-    <div class="modal-head"><h3>✅ Ditandai Terjual</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(harga)}</b><br><span>${t.namaBarang} — ${c?c.nama:''}</span></div></div>
-      ${sisaHakNasabah>0 ? `<div class="login-hint">Sisa hak nasabah dari hasil jual: <b>${rupiah(sisaHakNasabah)}</b> — pastikan dikembalikan.</div>` : ''}
-    </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printTitipanReceipt('${t.id}','lelang',{harga:${harga}})">🖨️ Cetak Struk</button></div>
-  `);
-}
-async function deleteTitipan(id){
-  const t = STATE.titipan.find(x=>x.id===id);
-  if(!t) return;
-  if(!confirm(`Hapus riwayat titipan "${t.namaBarang}"? Data ini sudah selesai (ditebus/terjual) dan hanya akan dihapus dari daftar.`)) return;
-  STATE.titipan = STATE.titipan.filter(x=>x.id!==id);
-  await fbDeleteOne('titipan', id);
-  addLog(`Riwayat titipan dihapus: ${t.namaBarang}`, 'info');
-  toast('Riwayat dihapus', `"${t.namaBarang}" sudah dihapus dari daftar.`);
-  render('titipan');
-}
-
 /* ============================= LAPORAN ============================= */
 function viewLaporan(tab){
   const now = new Date();
@@ -2377,13 +1967,6 @@ function viewPengaturan(){
         <div class="field"><label>Alamat</label><input id="set-address" value="${s.address}"></div>
         <div class="field"><label>Nomor WhatsApp</label><input id="set-wa" value="${s.wa}"></div>
         <div class="field"><label>Inisial Logo (2 huruf)</label><input id="set-logo" maxlength="2" value="${s.logoText}"></div>
-        <button class="btn btn-primary" onclick="saveSettings()">Simpan Perubahan</button>
-      </div>
-      <div class="panel" style="margin-bottom:16px;">
-        <div class="panel-head"><h3>Saran Titipan Barang</h3></div>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Dipakai sebagai saran otomatis saat mencatat titipan baru (dari nilai taksiran barang) — tetap bisa diubah manual per transaksi.</p>
-        <div class="field"><label>Maks. Dana Talangan (% dari taksiran)</label><input id="set-talangan-persen" type="number" min="1" max="100" step="1" value="${s.talanganPersen||80}"></div>
-        <div class="field"><label>Biaya Jasa Penitipan (% dari taksiran / 14 hari)</label><input id="set-jasa-persen" type="number" min="0.1" max="20" step="0.01" value="${s.jasaPersenPer14Hari||1.75}"></div>
         <button class="btn btn-primary" onclick="saveSettings()">Simpan Perubahan</button>
       </div>
       ${isAdmin? `
@@ -2539,17 +2122,13 @@ async function saveSettings(){
   STATE.settings.address = document.getElementById('set-address').value.trim();
   STATE.settings.wa = document.getElementById('set-wa').value.trim();
   STATE.settings.logoText = document.getElementById('set-logo').value.trim().toUpperCase() || 'AB';
-  const talanganEl = document.getElementById('set-talangan-persen');
-  const jasaEl = document.getElementById('set-jasa-persen');
-  if(talanganEl) STATE.settings.talanganPersen = Math.min(100, Math.max(1, Number(talanganEl.value)||80));
-  if(jasaEl) STATE.settings.jasaPersenPer14Hari = Math.min(20, Math.max(0.1, Number(jasaEl.value)||1.75));
   await dbSet('agent-settings', STATE.settings);
   document.getElementById('side-agent-name').textContent = STATE.settings.name;
   addLog('Pengaturan agen diperbarui', 'info');
   toast('Tersimpan', 'Pengaturan agen berhasil diperbarui.');
 }
 function backupData(){
-  const payload = { settings: STATE.settings, customers: STATE.customers, transactions: STATE.transactions, logs: STATE.logs, goals: STATE.goals, titipan: STATE.titipan, exportedAt: new Date().toISOString() };
+  const payload = { settings: STATE.settings, customers: STATE.customers, transactions: STATE.transactions, logs: STATE.logs, goals: STATE.goals, exportedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href=url; a.download=`backup-tabungan-customer-${todayKey()}.json`; a.click(); URL.revokeObjectURL(url);
@@ -2567,13 +2146,11 @@ function restoreData(e){
       if(payload.transactions) STATE.transactions = payload.transactions;
       if(payload.logs) STATE.logs = payload.logs;
       if(payload.goals) STATE.goals = payload.goals;
-      if(payload.titipan) STATE.titipan = payload.titipan;
       await dbSet('agent-settings', STATE.settings);
       await dbSet('customers', STATE.customers);
       await dbSet('transactions', STATE.transactions);
       await fbSaveArray('logs', STATE.logs);
       await dbSet('goals', STATE.goals);
-      await dbSet('titipan', STATE.titipan);
       addLog('Data dipulihkan dari file cadangan', 'info');
       toast('Berhasil dipulihkan', 'Data telah dikembalikan dari cadangan.');
       render('dashboard');
