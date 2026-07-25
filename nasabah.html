@@ -197,7 +197,7 @@ const functionsInstance = firebase.app().functions('asia-southeast2');
 const CUSTOMER_EMAIL_DOMAIN = '@nasabah.tabungan-app.local';
 // TEMPEL VAPID KEY DARI: Firebase Console > Project Settings > Cloud Messaging
 // > Web configuration > Web Push certificates > Generate key pair
-const VAPID_KEY = "BFyaWDxXIhyWVkO3GaxWmerdJ2vHJa1EHEI8cfOUPUG98GqOhRVm5tOHxqjzMCov7HrGOeDCILdzf4t1RkrpAq8";
+const VAPID_KEY = "TEMPEL_VAPID_KEY_ANDA_DI_SINI";
 
 function normalizeDigits(s){ return (s||'').replace(/\D/g,''); }
 function normalizePhoneForAuth(hp){
@@ -511,7 +511,7 @@ function bannerCarouselHTML(){
   const b = banners[STATE.bannerIndex];
   return `
     <div style="margin-top:16px;">
-      <div style="position:relative; border-radius:16px; overflow:hidden; aspect-ratio:2/1; background:#F1F5F9;">
+      <div style="position:relative; border-radius:16px; overflow:hidden; aspect-ratio:2/1; background:#F1F5F9; cursor:pointer;" onclick="openBannerDetail(${STATE.bannerIndex})">
         <img src="${b.imageUrl}" style="width:100%; height:100%; object-fit:cover; display:block;">
       </div>
       ${banners.length>1 ? `<div style="display:flex; justify-content:center; gap:5px; margin-top:8px;">
@@ -519,13 +519,24 @@ function bannerCarouselHTML(){
       </div>` : ''}
     </div>`;
 }
+function openBannerDetail(index){
+  const b = STATE.banners[index];
+  if(!b) return;
+  openSheet(`
+    <div style="border-radius:16px; overflow:hidden; margin-bottom:16px;">
+      <img src="${b.imageUrl}" style="width:100%; display:block;">
+    </div>
+    ${b.deskripsi ? `<p style="font-size:13.5px; color:var(--text-main); line-height:1.6; margin:0 0 18px;">${b.deskripsi}</p>` : ''}
+    <button class="btn-outline" style="width:100%;" onclick="closeSheet()">Tutup</button>
+  `);
+}
 function startBannerRotation(){
   if(bannerTimer) clearInterval(bannerTimer);
   if(STATE.banners.length<2) return;
   bannerTimer = setInterval(()=>{
     STATE.bannerIndex = (STATE.bannerIndex+1) % STATE.banners.length;
     if(STATE.tab==='home') renderHome();
-  }, 4000);
+  }, 7000);
 }
 function renderHome(){
   const c = STATE.customer;
