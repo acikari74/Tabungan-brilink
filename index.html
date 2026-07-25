@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 <style>
 :root{
   --navy:#0B2447;
@@ -469,7 +470,7 @@ const DEFAULT_FIREBASE_CONFIG = {
   appId: "1:259351197970:web:468eee581958e5f74f1bcb",
   measurementId: "G-KWC8F3N9Z9"
 };
-let fbApp = null, auth = null, db = null;
+let fbApp = null, auth = null, db = null, storage = null;
 function getFbConfig(){
   const raw = localStorage.getItem('fb_config');
   if(raw){ try{ return JSON.parse(raw); }catch(e){} }
@@ -496,6 +497,7 @@ function initFbClient(){
     fbApp = firebase.initializeApp(cfg);
     auth = firebase.auth();
     db = firebase.firestore();
+    storage = firebase.storage();
     return true;
   }catch(e){ console.error(e); return false; }
 }
@@ -563,6 +565,7 @@ let STATE = {
   transactions: [],
   logs: [],
   goals: [],
+  banners: [],
   currentUser: null,
   view: 'dashboard',
   darkMode: false,
@@ -833,6 +836,7 @@ async function loadDataAndEnter(authUser, profileArg){
   STATE.transactions = await dbGet('transactions', []);
   STATE.logs = await dbGet('logs', []);
   STATE.goals = await dbGet('goals', []);
+  STATE.banners = await fbLoadCollection('promo_banners', 'urutan');
   STATE.darkMode = STATE.settings.darkMode || false;
   applyDarkMode();
 
@@ -1970,6 +1974,19 @@ function viewPengaturan(){
         <button class="btn btn-primary" onclick="saveSettings()">Simpan Perubahan</button>
       </div>
       ${isAdmin? `
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-head"><h3>Banner Promo (App Nasabah)</h3>
+          <label class="btn btn-primary btn-sm" style="cursor:pointer;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Banner
+            <input type="file" accept="image/*" style="display:none;" onchange="uploadBanner(this)">
+          </label>
+        </div>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Gambar promo yang tampil bergantian otomatis di halaman utama app Nasabah. Ukuran disarankan rasio lebar (mis. 800×400px), maks 2MB.</p>
+        <div id="banner-upload-status"></div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px;">
+          ${STATE.banners.length ? STATE.banners.map(bannerCard).join('') : '<div class="empty-state" style="grid-column:1/-1;">Belum ada banner. Klik "Tambah Banner" untuk upload gambar pertama.</div>'}
+        </div>
+      </div>
       <div class="panel">
         <div class="panel-head"><h3>Manajemen Staff &amp; Login</h3>
           <button class="btn btn-primary btn-sm" onclick="openAddUser()">
@@ -2117,6 +2134,82 @@ async function deleteUser(id){
     render('pengaturan');
   }catch(err){ toast('Gagal menghapus', err.message, true); }
 }
+/* ============================= BANNER PROMO (App Nasabah) ============================= */
+function bannerCard(b){
+  return `
+  <div style="border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--card);">
+    <img src="${b.imageUrl}" style="width:100%; height:90px; object-fit:cover; display:block; ${b.aktif?'':'opacity:.4;'}">
+    <div style="padding:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span class="pill ${b.aktif?'green':'gray'}" style="cursor:pointer;" onclick="toggleBannerActive('${b.id}')">${b.aktif?'Aktif':'Nonaktif'}</span>
+        <button class="btn btn-outline btn-sm" style="padding:4px 8px; color:var(--red); border-color:var(--red);" onclick="deleteBanner('${b.id}')">Hapus</button>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn btn-outline btn-sm" style="flex:1; padding:4px;" onclick="moveBanner('${b.id}',-1)">↑ Naik</button>
+        <button class="btn btn-outline btn-sm" style="flex:1; padding:4px;" onclick="moveBanner('${b.id}',1)">↓ Turun</button>
+      </div>
+    </div>
+  </div>`;
+}
+async function uploadBanner(input){
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > 2*1024*1024){ toast('File terlalu besar', 'Maksimal 2MB per gambar.', true); input.value=''; return; }
+  const statusEl = document.getElementById('banner-upload-status');
+  statusEl.innerHTML = `<div class="login-hint">Mengunggah gambar...</div>`;
+  try{
+    const id = uid('BN');
+    const ext = (file.name.split('.').pop()||'jpg').toLowerCase();
+    const ref = storage.ref().child(`promo_banners/${id}.${ext}`);
+    await ref.put(file);
+    const imageUrl = await ref.getDownloadURL();
+    const urutan = STATE.banners.length ? Math.max(...STATE.banners.map(b=>b.urutan||0))+1 : 1;
+    const banner = { id, imageUrl, urutan, aktif:true, createdAt:new Date().toISOString() };
+    STATE.banners.push(banner);
+    await db.collection('promo_banners').doc(id).set(banner);
+    addLog(`Banner promo baru ditambahkan`, 'info');
+    toast('Banner ditambahkan', 'Gambar promo sudah aktif di app Nasabah.');
+    statusEl.innerHTML = '';
+    render('pengaturan');
+  }catch(err){
+    statusEl.innerHTML = `<div class="login-hint" style="border-color:var(--red); color:var(--red);">Gagal upload: ${err.message}</div>`;
+  }
+  input.value = '';
+}
+async function toggleBannerActive(id){
+  const b = STATE.banners.find(x=>x.id===id);
+  if(!b) return;
+  b.aktif = !b.aktif;
+  await db.collection('promo_banners').doc(id).update({ aktif:b.aktif });
+  render('pengaturan');
+}
+async function moveBanner(id, dir){
+  const idx = STATE.banners.findIndex(x=>x.id===id);
+  if(idx<0) return;
+  const swapIdx = idx+dir;
+  if(swapIdx<0 || swapIdx>=STATE.banners.length) return;
+  const a = STATE.banners[idx], bItem = STATE.banners[swapIdx];
+  const tmp = a.urutan; a.urutan = bItem.urutan; bItem.urutan = tmp;
+  STATE.banners.sort((x,y)=>x.urutan-y.urutan);
+  await db.collection('promo_banners').doc(a.id).update({ urutan:a.urutan });
+  await db.collection('promo_banners').doc(bItem.id).update({ urutan:bItem.urutan });
+  render('pengaturan');
+}
+async function deleteBanner(id){
+  const b = STATE.banners.find(x=>x.id===id);
+  if(!b) return;
+  if(!confirm('Hapus banner ini? Gambar akan langsung hilang dari app Nasabah.')) return;
+  try{
+    const urlPath = decodeURIComponent(b.imageUrl.split('/o/')[1].split('?')[0]);
+    await storage.ref().child(urlPath).delete();
+  }catch(e){ /* file mungkin sudah tidak ada, lanjutkan hapus data saja */ }
+  await db.collection('promo_banners').doc(id).delete();
+  STATE.banners = STATE.banners.filter(x=>x.id!==id);
+  addLog('Banner promo dihapus', 'info');
+  toast('Banner dihapus', 'Gambar promo sudah dihapus.');
+  render('pengaturan');
+}
+
 async function saveSettings(){
   STATE.settings.name = document.getElementById('set-name').value.trim() || STATE.settings.name;
   STATE.settings.address = document.getElementById('set-address').value.trim();
