@@ -443,7 +443,11 @@ async function mintaIzinNotifikasi(){
     if(VAPID_KEY.includes('TEMPEL_VAPID_KEY')){ console.warn('VAPID_KEY belum diisi, notifikasi push tidak aktif.'); return; }
 
     const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js', { scope: './' });
-    const messaging = firebase.messaging();
+    // Pakai app instance TERPISAH khusus notifikasi — supaya kalau bagian ini
+    // gagal (misal file service worker belum ke-upload), tidak ikut merusak
+    // fitur lain seperti login/reset password yang pakai app instance utama.
+    const msgApp = firebase.initializeApp(FIREBASE_CONFIG, 'messaging-app');
+    const messaging = msgApp.messaging();
     if(messaging.useServiceWorker) messaging.useServiceWorker(reg);
     const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
     if(token && STATE.customerId){
@@ -453,7 +457,26 @@ async function mintaIzinNotifikasi(){
       const n = payload.notification || {};
       showToast(n.title||'Notifikasi', n.body||'', '🔔');
     });
-  }catch(e){ console.error('Gagal mendaftar notifikasi:', e); }
+  }catch(e){ console.error('Gagal mendaftar notifikasi (fitur lain tetap aman):', e); }
+}
+async function aktifkanNotifikasiManual(){
+  const btn = document.getElementById('btn-aktifkan-notif');
+  const asli = btn.innerHTML;
+  btn.innerHTML = '<span class="spin"></span> Mengaktifkan...';
+  btn.disabled = true;
+  try{
+    await mintaIzinNotifikasi();
+    if(Notification.permission==='granted'){
+      btn.innerHTML = '✅ Notifikasi Aktif';
+    } else {
+      btn.innerHTML = asli;
+      showToast('Belum aktif', 'Notifikasi belum diizinkan atau ada kendala teknis. Coba lagi nanti.', '🔔');
+    }
+  }catch(e){
+    btn.innerHTML = asli;
+    showToast('Gagal', 'Notifikasi tidak bisa diaktifkan saat ini. Fitur lain tetap berjalan normal.', '🔔');
+  }
+  btn.disabled = false;
 }
 
 /* ---------- MASUK APLIKASI (real-time listeners) ---------- */
@@ -463,7 +486,6 @@ async function enterApp(){
   if(unsubTx) unsubTx();
   if(unsubGoals) unsubGoals();
   if(unsubBanners) unsubBanners();
-  mintaIzinNotifikasi();
   let firstLoadTx=true, firstLoadGoals=true, firstLoadBanners=true;
 
   unsubCustomer = db.collection('customers').doc(STATE.customerId).onSnapshot(doc=>{
@@ -758,6 +780,7 @@ function renderProfil(){
       ${profilRow('Bergabung', fmtDate(c.tglDaftar))}
       ${profilRow('Status', c.status)}
     </div>
+    <button class="btn-outline" style="width:100%; margin-bottom:10px;" onclick="aktifkanNotifikasiManual()" id="btn-aktifkan-notif">🔔 Aktifkan Notifikasi HP</button>
     <button class="btn-outline" style="width:100%; margin-bottom:10px;" onclick="openGantiPin()">Ganti Password</button>
     <button class="btn-outline" style="width:100%; color:var(--danger); border-color:#FEE2E2;" onclick="doLogout()">Keluar</button>
     <div id="pin-modal"></div>
