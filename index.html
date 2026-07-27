@@ -1105,6 +1105,7 @@ function nextMemberNumber(){
 
 function openAddNasabah(){
   STATE.photoBuffer = null;
+  STATE.ktpFile = null;
   openModal(`
     <div class="modal-head"><h3>Tambah Nasabah Baru</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
@@ -1119,11 +1120,26 @@ function openAddNasabah(){
         <div class="field" style="grid-column:1/-1;"><label>Alamat*</label><textarea id="f-alamat" rows="2" style="width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid var(--border); background:var(--bg); color:var(--text); resize:vertical;"></textarea></div>
         <div class="field"><label>Setoran Awal (Rp)</label><input id="f-saldo" type="text" inputmode="numeric" value="0" oninput="formatMoneyInput(this)"></div>
         <div class="field"><label>No. RFID (Opsional)</label><input id="f-rfid" placeholder="Tempel/ketik ID kartu"></div>
+        <div class="field" style="grid-column:1/-1;">
+          <label>Foto KTP (opsional, buat verifikasi identitas)</label>
+          <input type="file" accept="image/*" capture="environment" id="f-ktp" onchange="previewKtp(event)">
+          <div id="ktp-preview" style="margin-top:8px;"></div>
+        </div>
       </div>
       <div class="login-hint">No. rekening & no. member dibuat otomatis: <b class="mono">${nextAccountNumber()}</b> / <b>${nextMemberNumber()}</b></div>
+      <div class="login-hint" style="margin-top:10px;">Foto KTP disimpan terpisah dan cuma bisa diakses lewat aplikasi ini (link gambar tidak ditampilkan ke publik). Tetap perlakukan sebagai data pribadi sensitif.</div>
     </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveNasabah()">Simpan Nasabah</button></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" id="btn-save-nasabah" onclick="saveNasabah()">Simpan Nasabah</button></div>
   `);
+}
+function previewKtp(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  if(file.size > 3*1024*1024){ toast('File terlalu besar', 'Maksimal 3MB untuk foto KTP.', true); e.target.value=''; return; }
+  STATE.ktpFile = file;
+  const reader = new FileReader();
+  reader.onload = ()=>{ document.getElementById('ktp-preview').innerHTML = `<img src="${reader.result}" style="max-width:100%; max-height:160px; border-radius:10px; border:1.5px solid var(--border);">`; };
+  reader.readAsDataURL(file);
 }
 function handlePhotoUpload(e){
   const file = e.target.files[0]; if(!file) return;
@@ -1137,13 +1153,30 @@ async function saveNasabah(){
   const alamat = document.getElementById('f-alamat').value.trim();
   if(!nama || !hp || !alamat){ toast('Data belum lengkap','Nama, HP, dan Alamat wajib diisi.', true); return; }
   const setoranAwal = getMoneyInput('f-saldo');
+  const btn = document.getElementById('btn-save-nasabah');
+  const customerId = uid('C');
+  let fotoKtpUrl = '';
+  if(STATE.ktpFile){
+    btn.innerHTML = '<span class="loading-spin"></span> Mengunggah foto KTP...';
+    try{
+      const ext = (STATE.ktpFile.name.split('.').pop()||'jpg').toLowerCase();
+      const ref = storage.ref().child(`ktp_photos/${uid('KTP')}.${ext}`);
+      await ref.put(STATE.ktpFile);
+      fotoKtpUrl = await ref.getDownloadURL();
+    }catch(err){
+      btn.innerHTML = 'Simpan Nasabah';
+      toast('Gagal upload foto KTP', err.message, true);
+      return;
+    }
+  }
   const c = {
-    id: uid('C'),
+    id: customerId,
     noRekening: nextAccountNumber(),
     noMember: nextMemberNumber(),
     nama, hp, alamat,
     tglDaftar: new Date().toISOString(),
     foto: STATE.photoBuffer || '',
+    fotoKtpUrl,
     status: document.getElementById('f-status').value,
     rfid: document.getElementById('f-rfid').value.trim(),
     saldo: 0,
@@ -1167,7 +1200,7 @@ async function saveNasabah(){
       <div class="modal-body">
         <div class="sim-row big" style="margin-bottom:14px;"><div><b>${nama}</b><br><span>${c.noRekening} • Setoran awal ${rupiah(setoranAwal)}</span></div></div>
       </div>
-      <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printReceipt('${setoranAwalTx.id}')">🖨️ Cetak Struk</button></div>
+      <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${waTombol(c.hp, `Halo ${nama}, selamat! Rekening tabungan Anda di ${STATE.settings.name} sudah aktif dengan setoran awal ${rupiah(setoranAwal)}. No. Rekening: ${c.noRekening}. Terima kasih.`)}<button class="btn btn-primary" onclick="printReceipt('${setoranAwalTx.id}')">🖨️ Cetak Struk</button></div>
     `);
   } else {
     toast('Nasabah ditambahkan', `${nama} berhasil didaftarkan.`);
@@ -1175,6 +1208,27 @@ async function saveNasabah(){
 }
 
 /* ---------- Hapus nasabah (khusus Admin) ---------- */
+async function uploadKtpExisting(e, customerId){
+  const file = e.target.files[0];
+  if(!file) return;
+  if(file.size > 3*1024*1024){ toast('File terlalu besar', 'Maksimal 3MB untuk foto KTP.', true); e.target.value=''; return; }
+  const c = STATE.customers.find(x=>x.id===customerId);
+  if(!c) return;
+  toast('Mengunggah...', 'Sedang mengunggah foto KTP.');
+  try{
+    const ext = (file.name.split('.').pop()||'jpg').toLowerCase();
+    const ref = storage.ref().child(`ktp_photos/${uid('KTP')}.${ext}`);
+    await ref.put(file);
+    const fotoKtpUrl = await ref.getDownloadURL();
+    c.fotoKtpUrl = fotoKtpUrl;
+    await dbSet('customers', [c]);
+    addLog(`Foto KTP diperbarui: ${c.nama}`, 'info');
+    toast('Foto KTP tersimpan', `Foto KTP ${c.nama} berhasil diunggah.`);
+    render('detail-nasabah');
+  }catch(err){
+    toast('Gagal upload', err.message, true);
+  }
+}
 async function deleteNasabah(customerId){
   const c = STATE.customers.find(x=>x.id===customerId);
   if(!c) return;
@@ -1241,7 +1295,7 @@ function viewDetailNasabah(id){
         <div class="panel-head"><h3>Data Nasabah</h3><span class="pill ${c.status==='Aktif'?'green':'red'}">${c.status}</span></div>
         <div style="display:flex; flex-direction:column; gap:10px; font-size:13px;">
           <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">No. Member</span><b>${c.noMember}</b></div>
-          <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">No. HP</span><b>${c.hp}</b></div>
+          <div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:var(--muted);">No. HP</span><span style="display:flex; align-items:center; gap:8px;"><b>${c.hp}</b>${c.hp?`<button onclick="openWhatsApp('${c.hp}', 'Halo ${c.nama}, ')" style="background:none; border:none; color:var(--green); padding:2px;" title="Kirim WA"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.51 2 12.04 2zm5.83 14.03c-.24.68-1.4 1.3-1.93 1.38-.49.08-1.11.11-1.79-.11-.41-.13-.94-.31-1.62-.6-2.85-1.23-4.71-4.1-4.85-4.29-.14-.19-1.16-1.54-1.16-2.94 0-1.4.73-2.09.99-2.38.26-.28.57-.35.76-.35.19 0 .38 0 .55.01.18.01.41-.07.64.49.24.57.81 1.98.88 2.12.07.14.12.31.02.5-.1.19-.15.31-.29.48-.14.17-.31.37-.44.5-.14.14-.3.29-.13.57.17.28.76 1.25 1.63 2.02 1.12.99 2.06 1.3 2.34 1.44.28.14.44.12.61-.07.17-.19.71-.83.9-1.11.19-.28.38-.24.63-.14.26.09 1.65.78 1.94.92.28.14.47.21.54.33.07.12.07.71-.17 1.39z"/></svg></button>`:''}</span></div>
           <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">Alamat</span><b style="text-align:right; max-width:60%;">${c.alamat}</b></div>
           <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">No. RFID</span><b>${c.rfid||'—'}</b></div>
         </div>
@@ -1251,6 +1305,16 @@ function viewDetailNasabah(id){
             <span class="pill ${c.authProvisioned?'green':'gray'}">${c.authProvisioned?'Sudah Aktif':'Belum Aktif'}</span>
           </div>
           ${c.authProvisioned ? '' : `<button class="btn btn-primary btn-sm" onclick="provisionCustomerLogin('${c.id}').then(ok=>{ if(ok) render('detail-nasabah'); })">Aktifkan Login</button>`}
+        </div>
+        <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:${c.fotoKtpUrl?'10px':'0'};">
+            <div style="font-size:12px; color:var(--muted);">Foto KTP</div>
+            <label class="btn btn-outline btn-sm" style="cursor:pointer; padding:5px 10px;">
+              ${c.fotoKtpUrl?'Ganti Foto':'Upload Foto'}
+              <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="uploadKtpExisting(event,'${c.id}')">
+            </label>
+          </div>
+          ${c.fotoKtpUrl ? `<img src="${c.fotoKtpUrl}" style="max-width:100%; max-height:220px; border-radius:10px; border:1.5px solid var(--border); cursor:pointer;" onclick="window.open('${c.fotoKtpUrl}','_blank')">` : '<div style="font-size:12px; color:var(--muted);">Belum ada foto KTP tersimpan.</div>'}
         </div>
       </div>
       ${STATE.currentUser.role==='Admin' ? `
@@ -1367,7 +1431,7 @@ async function confirmTx(type){
       <div class="sim-row"><span>Saldo Sekarang</span><b>${rupiah(c.saldo)}</b></div>
       <div class="sim-row"><span>No. Transaksi</span><b class="mono" style="font-size:12px;">${tx.id}</b></div>
     </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="printReceipt('${tx.id}')">🖨️ Cetak Struk</button></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${waTombol(c.hp, `Halo ${c.nama}, ${typeLabel.toLowerCase()} sebesar ${rupiah(amount)} berhasil dicatat. Saldo Anda sekarang: ${rupiah(c.saldo)}. Terima kasih - ${STATE.settings.name}.`)}<button class="btn btn-primary" onclick="printReceipt('${tx.id}')">🖨️ Cetak Struk</button></div>
   `);
 }
 async function logTransaction(c, type, amount, note, extraFields){
@@ -1424,6 +1488,26 @@ function openReceiptPrint(title, bodyHtml){
   win.onload = ()=>{ win.focus(); win.print(); };
 }
 function receiptRow(label, value, bold){ return `<div class="row"><span>${label}</span><span${bold?' class="b"':''}>${value}</span></div>`; }
+
+/* ============================= KIRIM WA (manual, staff yang kirim) ============================= */
+function waNormalize(hp){
+  let d = (hp||'').replace(/\D/g,'');
+  if(d.startsWith('0')) d = '62'+d.slice(1);
+  if(!d.startsWith('62')) d = '62'+d;
+  return d;
+}
+function openWhatsApp(hp, message){
+  const nomor = waNormalize(hp);
+  if(!nomor){ toast('No. HP tidak valid', 'Nasabah ini belum punya No. HP yang tersimpan.', true); return; }
+  const url = `https://wa.me/${nomor}?text=${encodeURIComponent(message)}`;
+  window.open(url, '_blank');
+}
+function waTombol(hp, message){
+  return `<button class="btn btn-outline" onclick='openWhatsApp(${JSON.stringify(hp)}, ${JSON.stringify(message)})' style="display:flex; align-items:center; gap:6px; justify-content:center;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.51 2 12.04 2zm5.83 14.03c-.24.68-1.4 1.3-1.93 1.38-.49.08-1.11.11-1.79-.11-.41-.13-.94-.31-1.62-.6-2.85-1.23-4.71-4.1-4.85-4.29-.14-.19-1.16-1.54-1.16-2.94 0-1.4.73-2.09.99-2.38.26-.28.57-.35.76-.35.19 0 .38 0 .55.01.18.01.41-.07.64.49.24.57.81 1.98.88 2.12.07.14.12.31.02.5-.1.19-.15.31-.29.48-.14.17-.31.37-.44.5-.14.14-.3.29-.13.57.17.28.76 1.25 1.63 2.02 1.12.99 2.06 1.3 2.34 1.44.28.14.44.12.61-.07.17-.19.71-.83.9-1.11.19-.28.38-.24.63-.14.26.09 1.65.78 1.94.92.28.14.47.21.54.33.07.12.07.71-.17 1.39z"/></svg>
+    Kirim WA
+  </button>`;
+}
 
 function printReceipt(txId){
   const t = STATE.transactions.find(x=>x.id===txId);
@@ -1775,7 +1859,7 @@ async function saveGoal(){
     <div class="modal-body">
       <div class="sim-row big" style="margin-bottom:14px;"><div><b>${namaBarang}</b><br><span>${c.nama} — target ${rupiah(target)}${awal>0?` (setoran awal ${rupiah(awal)})`:''}</span></div></div>
     </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${awalTx
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${waTombol(c.hp, `Halo ${c.nama}, program tabungan "${namaBarang}" (target ${rupiah(target)}) sudah aktif untuk Anda di ${STATE.settings.name}.${awal>0?` Setoran awal ${rupiah(awal)} sudah tercatat.`:''} Terima kasih.`)}${awalTx
       ? `<button class="btn btn-primary" onclick="printReceipt('${awalTx.id}')">🖨️ Cetak Struk</button>`
       : `<button class="btn btn-primary" onclick="printProgramReceipt('${g.id}')">🖨️ Cetak Struk</button>`}</div>
   `);
@@ -1825,7 +1909,7 @@ async function confirmSetorGoal(goalId){
       <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(amount)}</b><br><span>${g.namaBarang} — ${c?c.nama:''}</span></div></div>
       ${done ? `<div class="login-hint">Program sudah mencapai target ${rupiah(g.target)} 🎉</div>` : ''}
     </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${tx?`<button class="btn btn-primary" onclick="printReceipt('${tx.id}')">🖨️ Cetak Struk</button>`:''}</div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${c?waTombol(c.hp, done ? `Selamat ${c.nama}! Program tabungan "${g.namaBarang}" Anda sudah mencapai target ${rupiah(g.target)}. Silakan hubungi kami untuk proses selanjutnya. Terima kasih - ${STATE.settings.name}.` : `Halo ${c.nama}, setoran ${rupiah(amount)} untuk program "${g.namaBarang}" berhasil dicatat. Terkumpul: ${rupiah(g.terkumpul)} / ${rupiah(g.target)}. Terima kasih.`):''}${tx?`<button class="btn btn-primary" onclick="printReceipt('${tx.id}')">🖨️ Cetak Struk</button>`:''}</div>
   `);
 }
 async function setorKeGoal(g, amount){
