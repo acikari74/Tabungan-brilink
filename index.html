@@ -1129,7 +1129,7 @@ function openAddNasabah(){
       <div class="login-hint">No. rekening & no. member dibuat otomatis: <b class="mono">${nextAccountNumber()}</b> / <b>${nextMemberNumber()}</b></div>
       <div class="login-hint" style="margin-top:10px;">Foto KTP disimpan terpisah dan cuma bisa diakses lewat aplikasi ini (link gambar tidak ditampilkan ke publik). Tetap perlakukan sebagai data pribadi sensitif.</div>
     </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" id="btn-save-nasabah" onclick="saveNasabah()">Simpan Nasabah</button></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" id="btn-save-nasabah" onclick="requestSignatureAndSaveNasabah()">Lanjut ke Tanda Tangan</button></div>
   `);
 }
 function previewKtp(e){
@@ -1147,26 +1147,72 @@ function handlePhotoUpload(e){
   reader.onload = ()=>{ STATE.photoBuffer = reader.result; document.getElementById('photo-upload-box').innerHTML = `<img src="${reader.result}"><input type="file" accept="image/*" style="display:none;" id="photo-input" onchange="handlePhotoUpload(event)">`; };
   reader.readAsDataURL(file);
 }
-async function saveNasabah(){
+let unsubNasabahTtd = null;
+let pendingNasabahData = null;
+function requestSignatureAndSaveNasabah(){
   const nama = document.getElementById('f-nama').value.trim();
   const hp = document.getElementById('f-hp').value.trim();
   const alamat = document.getElementById('f-alamat').value.trim();
   if(!nama || !hp || !alamat){ toast('Data belum lengkap','Nama, HP, dan Alamat wajib diisi.', true); return; }
-  const setoranAwal = getMoneyInput('f-saldo');
-  const btn = document.getElementById('btn-save-nasabah');
+
+  // Tangkap semua data form SEKARANG, karena tampilan modal akan diganti
+  // jadi layar "menunggu tanda tangan" — form aslinya bakal hilang dari DOM.
+  pendingNasabahData = {
+    nama, hp, alamat,
+    setoranAwal: getMoneyInput('f-saldo'),
+    status: document.getElementById('f-status').value,
+    rfid: document.getElementById('f-rfid').value.trim(),
+    fotoBuffer: STATE.photoBuffer || '',
+    ktpFile: STATE.ktpFile || null,
+  };
+
+  db.collection('signature_sessions').doc('current').set({
+    status:'waiting', customerId:null, customerName:nama,
+    termsText: STATE.settings.syaratKetentuan || DEFAULT_TERMS,
+    signatureDataUrl:null, requestedAt:new Date().toISOString(),
+  });
+
+  const modalBody = document.querySelector('.modal-body');
+  if(modalBody) modalBody.innerHTML = `
+    <div style="text-align:center; padding:24px 0;">
+      <div class="loading-spin" style="width:30px; height:30px; border-width:3px; margin:0 auto 16px;"></div>
+      <div style="font-weight:700; font-size:15px;">Menunggu tanda tangan ${nama}...</div>
+      <div style="font-size:12.5px; color:var(--muted); margin-top:8px;">Pastikan Layar Nasabah sudah terbuka & terlihat oleh nasabah.</div>
+    </div>
+  `;
+  const modalFoot = document.querySelector('.modal-foot');
+  if(modalFoot) modalFoot.innerHTML = `<button class="btn btn-outline" onclick="batalkanSimpanNasabah()">Batal</button>`;
+
+  if(unsubNasabahTtd) unsubNasabahTtd();
+  unsubNasabahTtd = db.collection('signature_sessions').doc('current').onSnapshot(async (doc)=>{
+    const d = doc.data();
+    if(!d || d.status!=='signed' || !d.signatureDataUrl) return;
+    unsubNasabahTtd(); unsubNasabahTtd = null;
+    await db.collection('signature_sessions').doc('current').set({ status:'idle' });
+    await saveNasabah(d.signatureDataUrl);
+  });
+}
+function batalkanSimpanNasabah(){
+  if(unsubNasabahTtd){ unsubNasabahTtd(); unsubNasabahTtd=null; }
+  pendingNasabahData = null;
+  db.collection('signature_sessions').doc('current').set({ status:'idle' });
+  closeModal();
+}
+async function saveNasabah(tandaTanganUrl){
+  const data = pendingNasabahData;
+  if(!data){ toast('Gagal', 'Data nasabah tidak ditemukan, coba ulangi dari awal.', true); closeModal(); return; }
+  const { nama, hp, alamat, setoranAwal, status, rfid, fotoBuffer, ktpFile } = data;
+  pendingNasabahData = null;
   const customerId = uid('C');
   let fotoKtpUrl = '';
-  if(STATE.ktpFile){
-    btn.innerHTML = '<span class="loading-spin"></span> Mengunggah foto KTP...';
+  if(ktpFile){
     try{
-      const ext = (STATE.ktpFile.name.split('.').pop()||'jpg').toLowerCase();
+      const ext = (ktpFile.name.split('.').pop()||'jpg').toLowerCase();
       const ref = storage.ref().child(`ktp_photos/${uid('KTP')}.${ext}`);
-      await ref.put(STATE.ktpFile);
+      await ref.put(ktpFile);
       fotoKtpUrl = await ref.getDownloadURL();
     }catch(err){
-      btn.innerHTML = 'Simpan Nasabah';
       toast('Gagal upload foto KTP', err.message, true);
-      return;
     }
   }
   const c = {
@@ -1175,10 +1221,12 @@ async function saveNasabah(){
     noMember: nextMemberNumber(),
     nama, hp, alamat,
     tglDaftar: new Date().toISOString(),
-    foto: STATE.photoBuffer || '',
+    foto: fotoBuffer || '',
     fotoKtpUrl,
-    status: document.getElementById('f-status').value,
-    rfid: document.getElementById('f-rfid').value.trim(),
+    tandaTanganUrl: tandaTanganUrl || '',
+    tandaTanganPada: tandaTanganUrl ? new Date().toISOString() : '',
+    status,
+    rfid,
     saldo: 0,
     totalSetor: 0,
     totalTarik: 0,
@@ -1504,8 +1552,21 @@ const DEFAULT_TERMS = `1. Nasabah wajib mengisi data diri dengan benar dan sesua
 4. Agen berhak menutup rekening bila ditemukan data tidak sesuai atau digunakan untuk tujuan yang melanggar hukum.
 5. Dengan menandatangani ini, nasabah menyatakan telah membaca dan menyetujui seluruh syarat & ketentuan di atas.`;
 
-function bukaLayarNasabah(){
-  window.open('customer-display.html', '_blank', 'width=900,height=700');
+async function bukaLayarNasabah(){
+  try{
+    if('getScreenDetails' in window){
+      const details = await window.getScreenDetails();
+      const kedua = details.screens.find(s => !s.isPrimary) || details.screens[1];
+      if(kedua){
+        const w = window.open('customer-display.html', '_blank',
+          `left=${kedua.left},top=${kedua.top},width=${kedua.width},height=${kedua.height}`);
+        setTimeout(()=>{ if(w && w.document){ w.document.documentElement.requestFullscreen?.().catch(()=>{}); } }, 800);
+        return;
+      }
+    }
+  }catch(e){ /* browser tidak dukung / izin ditolak — lanjut cara biasa */ }
+  toast('Info', 'Browser ini tidak bisa otomatis pindah monitor — geser jendelanya manual ke layar kedua ya.');
+  window.open('customer-display.html', '_blank', 'width=1000,height=700');
 }
 function mintaTandaTangan(customerId){
   const c = STATE.customers.find(x=>x.id===customerId);
