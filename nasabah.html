@@ -200,6 +200,25 @@ const CUSTOMER_EMAIL_DOMAIN = '@nasabah.tabungan-app.local';
 const VAPID_KEY = "TEMPEL_VAPID_KEY_ANDA_DI_SINI";
 
 function normalizeDigits(s){ return (s||'').replace(/\D/g,''); }
+function pesanRamah(err){
+  const code = err && err.code;
+  const map = {
+    'auth/wrong-password': 'Password lama salah.',
+    'auth/weak-password': 'Password terlalu lemah, pakai minimal 6 karakter.',
+    'auth/requires-recent-login': 'Sesi login sudah lama, silakan login ulang lalu coba lagi.',
+    'auth/network-request-failed': 'Koneksi internet terputus, coba lagi.',
+    'auth/too-many-requests': 'Terlalu banyak percobaan, coba lagi sebentar lagi.',
+    'auth/user-disabled': 'Akun ini sedang dinonaktifkan, hubungi staff agen.',
+    'unavailable': 'Server sedang sibuk, coba lagi sebentar lagi.',
+    'internal': 'Terjadi kendala di server, coba lagi sebentar lagi.',
+  };
+  if(code && map[code]) return map[code];
+  // Kalau pesan aslinya sudah dalam Bahasa Indonesia yang jelas (bukan kode
+  // teknis), tetap tampilkan apa adanya — cuma saring yang kelihatan teknis.
+  const msg = (err && err.message) || '';
+  const terlihatTeknis = /firebase|error \(|auth\/|internal|undefined|null|NaN/i.test(msg);
+  return terlihatTeknis ? 'Terjadi kendala, coba lagi sebentar lagi.' : (msg || 'Terjadi kendala, coba lagi sebentar lagi.');
+}
 function normalizePhoneForAuth(hp){
   let d = normalizeDigits(hp);
   if(d.startsWith('0')) d = '62'+d.slice(1);
@@ -305,7 +324,7 @@ function openLupaAkses(){
       document.getElementById('form-lupa').style.display = 'none';
     }catch(err){
       btn.innerHTML = '<span>Reset Akses</span>'; btn.disabled = false;
-      errEl.textContent = err.message || 'No. Rekening atau No. HP tidak cocok dengan data kami.';
+      errEl.textContent = pesanRamah(err);
     }
   });
 }
@@ -383,7 +402,7 @@ document.getElementById('form-setpin').addEventListener('submit', async (e)=>{
   }catch(err){
     btn.innerHTML='<span>Simpan & Masuk</span>'; btn.disabled=false;
     if(err.code==='auth/requires-recent-login'){ errEl.textContent='Sesi login sudah lama, silakan login ulang lalu coba lagi.'; }
-    else errEl.textContent = err.message;
+    else errEl.textContent = pesanRamah(err);
   }
 });
 
@@ -775,7 +794,7 @@ function openGantiPin(){
       await auth.currentUser.updatePassword(newPin);
       closeGantiPin();
       alert('Password berhasil diganti.');
-    }catch(err){ errEl.textContent = err.code==='auth/wrong-password' ? 'Password lama salah.' : err.message; }
+    }catch(err){ errEl.textContent = pesanRamah(err); }
   });
 }
 function closeGantiPin(){ document.getElementById('pin-modal').innerHTML=''; }
