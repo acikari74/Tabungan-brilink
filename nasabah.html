@@ -441,8 +441,9 @@ async function mintaIzinNotifikasi(){
     if(Notification.permission!=='granted') return;
     if(VAPID_KEY.includes('TEMPEL_VAPID_KEY')){ console.warn('VAPID_KEY belum diisi, notifikasi push tidak aktif.'); return; }
 
-    const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+    const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js', { scope: './' });
     const messaging = firebase.messaging();
+    if(messaging.useServiceWorker) messaging.useServiceWorker(reg);
     const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
     if(token && STATE.customerId){
       await db.collection('fcm_tokens').doc(token).set({ customerId: STATE.customerId, updatedAt: new Date().toISOString() });
