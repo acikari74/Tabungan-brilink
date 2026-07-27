@@ -1316,6 +1316,14 @@ function viewDetailNasabah(id){
           </div>
           ${c.fotoKtpUrl ? `<img src="${c.fotoKtpUrl}" style="max-width:100%; max-height:220px; border-radius:10px; border:1.5px solid var(--border); cursor:pointer;" onclick="window.open('${c.fotoKtpUrl}','_blank')">` : '<div style="font-size:12px; color:var(--muted);">Belum ada foto KTP tersimpan.</div>'}
         </div>
+        <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:${c.tandaTanganUrl?'10px':'0'};">
+            <div style="font-size:12px; color:var(--muted);">Tanda Tangan Nasabah</div>
+            <button class="btn btn-outline btn-sm" style="padding:5px 10px;" onclick="mintaTandaTangan('${c.id}')">${c.tandaTanganUrl?'Minta Ulang':'Minta Tanda Tangan'}</button>
+          </div>
+          ${c.tandaTanganUrl ? `<img src="${c.tandaTanganUrl}" style="max-width:100%; max-height:140px; background:#fff; border-radius:10px; border:1.5px solid var(--border); padding:8px;">
+          <div style="font-size:11px; color:var(--muted); margin-top:6px;">Ditandatangani ${fmtDate(c.tandaTanganPada)} ${fmtTime(c.tandaTanganPada)}</div>` : '<div style="font-size:12px; color:var(--muted);">Belum ada tanda tangan tersimpan.</div>'}
+        </div>
       </div>
       ${STATE.currentUser.role==='Admin' ? `
       <div class="panel no-print" style="margin-top:16px; border-color:var(--red-bg);">
@@ -1488,6 +1496,63 @@ function openReceiptPrint(title, bodyHtml){
   win.onload = ()=>{ win.focus(); win.print(); };
 }
 function receiptRow(label, value, bold){ return `<div class="row"><span>${label}</span><span${bold?' class="b"':''}>${value}</span></div>`; }
+
+/* ============================= LAYAR NASABAH (Syarat & Tanda Tangan) ============================= */
+const DEFAULT_TERMS = `1. Nasabah wajib mengisi data diri dengan benar dan sesuai identitas asli.
+2. Saldo tabungan dapat dicek kapan saja lewat aplikasi Nasabah menggunakan No. Rekening yang terdaftar.
+3. Penarikan tunai hanya bisa dilakukan langsung di agen oleh staff yang berwenang.
+4. Agen berhak menutup rekening bila ditemukan data tidak sesuai atau digunakan untuk tujuan yang melanggar hukum.
+5. Dengan menandatangani ini, nasabah menyatakan telah membaca dan menyetujui seluruh syarat & ketentuan di atas.`;
+
+function bukaLayarNasabah(){
+  window.open('customer-display.html', '_blank', 'width=900,height=700');
+}
+function mintaTandaTangan(customerId){
+  const c = STATE.customers.find(x=>x.id===customerId);
+  if(!c) return;
+  openModal(`
+    <div class="modal-head"><h3>Minta Tanda Tangan</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="ttd-modal-body">
+      <div class="login-hint">Pastikan <b>Layar Nasabah</b> sudah terbuka di monitor/perangkat yang menghadap ke nasabah (menu Pengaturan → "Buka Layar Nasabah"), lalu klik tombol di bawah.</div>
+      <button class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="kirimPermintaanTtd('${c.id}')">Kirim ke Layar Nasabah</button>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="tutupModalTtd()">Batal</button></div>
+  `);
+}
+let unsubTtd = null;
+async function kirimPermintaanTtd(customerId){
+  const c = STATE.customers.find(x=>x.id===customerId);
+  if(!c) return;
+  await db.collection('signature_sessions').doc('current').set({
+    status:'waiting', customerId:c.id, customerName:c.nama,
+    termsText: STATE.settings.syaratKetentuan || DEFAULT_TERMS,
+    signatureDataUrl:null, requestedAt:new Date().toISOString(),
+  });
+  document.getElementById('ttd-modal-body').innerHTML = `
+    <div style="text-align:center; padding:20px 0;">
+      <div class="loading-spin" style="width:28px; height:28px; border-width:3px; margin:0 auto 14px;"></div>
+      <div style="font-weight:600;">Menunggu tanda tangan ${c.nama} di layar nasabah...</div>
+    </div>
+  `;
+  if(unsubTtd) unsubTtd();
+  unsubTtd = db.collection('signature_sessions').doc('current').onSnapshot(async (doc)=>{
+    const d = doc.data();
+    if(!d || d.status!=='signed' || !d.signatureDataUrl) return;
+    unsubTtd(); unsubTtd = null;
+    c.tandaTanganUrl = d.signatureDataUrl;
+    c.tandaTanganPada = new Date().toISOString();
+    await dbSet('customers', [c]);
+    await db.collection('signature_sessions').doc('current').set({ status:'idle' });
+    addLog(`Tanda tangan diterima: ${c.nama}`, 'info');
+    toast('Tanda tangan diterima', `Tanda tangan ${c.nama} sudah tersimpan.`);
+    closeModal();
+    render('detail-nasabah');
+  });
+}
+function tutupModalTtd(){
+  if(unsubTtd){ unsubTtd(); unsubTtd=null; }
+  closeModal();
+}
 
 /* ============================= KIRIM WA (manual, staff yang kirim) ============================= */
 function waNormalize(hp){
@@ -2059,6 +2124,18 @@ function viewPengaturan(){
       </div>
       ${isAdmin? `
       <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-head"><h3>Layar Nasabah (Syarat & Tanda Tangan)</h3>
+          <button class="btn btn-primary btn-sm" onclick="bukaLayarNasabah()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Buka Layar Nasabah
+          </button>
+        </div>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Buka ini di jendela/monitor kedua yang menghadap ke nasabah. Layar itu otomatis menampilkan banner promo saat idle, dan syarat & ketentuan + kolom tanda tangan waktu Anda klik "Minta Tanda Tangan" di halaman detail nasabah.</p>
+        <div class="field"><label>Isi Syarat & Ketentuan Pembukaan Tabungan</label>
+          <textarea id="set-terms" rows="8" style="width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid var(--border); background:var(--bg); color:var(--text); resize:vertical; font-size:13px; line-height:1.6;">${s.syaratKetentuan||DEFAULT_TERMS}</textarea>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">Simpan Perubahan</button>
+      </div>
+      <div class="panel" style="margin-bottom:16px;">
         <div class="panel-head"><h3>Banner Promo (App Nasabah)</h3>
           <button class="btn btn-primary btn-sm" onclick="openAddBanner()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Banner
@@ -2312,6 +2389,8 @@ async function saveSettings(){
   STATE.settings.address = document.getElementById('set-address').value.trim();
   STATE.settings.wa = document.getElementById('set-wa').value.trim();
   STATE.settings.logoText = document.getElementById('set-logo').value.trim().toUpperCase() || 'AB';
+  const termsEl = document.getElementById('set-terms');
+  if(termsEl) STATE.settings.syaratKetentuan = termsEl.value.trim();
   await dbSet('agent-settings', STATE.settings);
   document.getElementById('side-agent-name').textContent = STATE.settings.name;
   addLog('Pengaturan agen diperbarui', 'info');
