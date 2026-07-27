@@ -648,6 +648,23 @@ function usernameToEmail(u){ return u.trim().toLowerCase().replace(/[^a-z0-9._-]
 /* ---------- Login Nasabah: provisioning akun (dipakai app khusus nasabah) ---------- */
 const CUSTOMER_EMAIL_DOMAIN = '@nasabah.tabungan-app.local';
 function normalizeDigits(s){ return (s||'').replace(/\D/g,''); }
+function pesanRamah(err){
+  const code = err && err.code;
+  const map = {
+    'auth/email-already-in-use': 'Username ini sudah pernah dipakai sebelumnya.',
+    'auth/weak-password': 'Password terlalu lemah, pakai minimal 6 karakter.',
+    'auth/requires-recent-login': 'Sesi login sudah lama, silakan login ulang lalu coba lagi.',
+    'auth/network-request-failed': 'Koneksi internet terputus, coba lagi.',
+    'auth/too-many-requests': 'Terlalu banyak percobaan, coba lagi sebentar lagi.',
+    'storage/unauthorized': 'Tidak ada izin akses. Cek Storage Rules sudah benar & ter-Publish.',
+    'permission-denied': 'Tidak ada izin akses. Cek Firestore Rules sudah benar & ter-Publish.',
+    'unavailable': 'Server sedang sibuk, coba lagi sebentar lagi.',
+  };
+  if(code && map[code]) return map[code];
+  const msg = (err && err.message) || '';
+  const terlihatTeknis = /firebase|error \(|auth\/|storage\/|internal|undefined|null|NaN/i.test(msg);
+  return terlihatTeknis ? `Terjadi kendala teknis. (${msg.slice(0,80)})` : (msg || 'Terjadi kendala, coba lagi sebentar lagi.');
+}
 function normalizePhoneForAuth(hp){
   let d = normalizeDigits(hp);
   if(d.startsWith('0')) d = '62'+d.slice(1);
@@ -680,7 +697,7 @@ async function provisionCustomerLogin(customerId){
       await dbSet('customers', [c]);
       toast('Sudah aktif', 'Akun login nasabah ini ternyata sudah ada.', true);
     } else {
-      toast('Gagal mengaktifkan login', err.message, true);
+      toast('Gagal mengaktifkan login', pesanRamah(err), true);
     }
     return false;
   }
@@ -773,7 +790,7 @@ function renderBootstrapAdminScreen(){
       await loadDataAndEnter(cred.user);
     }catch(err){
       btn.innerHTML='<span>Buat Akun Admin</span>';
-      toast('Gagal membuat akun', err.message, true);
+      toast('Gagal membuat akun', pesanRamah(err), true);
     }
   });
 }
@@ -1212,7 +1229,7 @@ async function saveNasabah(tandaTanganUrl){
       await ref.put(ktpFile);
       fotoKtpUrl = await ref.getDownloadURL();
     }catch(err){
-      toast('Gagal upload foto KTP', err.message, true);
+      toast('Gagal upload foto KTP', pesanRamah(err), true);
     }
   }
   const c = {
@@ -1274,7 +1291,7 @@ async function uploadKtpExisting(e, customerId){
     toast('Foto KTP tersimpan', `Foto KTP ${c.nama} berhasil diunggah.`);
     render('detail-nasabah');
   }catch(err){
-    toast('Gagal upload', err.message, true);
+    toast('Gagal upload', pesanRamah(err), true);
   }
 }
 async function deleteNasabah(customerId){
@@ -1306,7 +1323,7 @@ async function deleteNasabah(customerId){
     toast('Nasabah dihapus', `${c.nama} sudah dihapus dari daftar.`);
     render('nasabah');
   }catch(err){
-    toast('Gagal menghapus', err.message, true);
+    toast('Gagal menghapus', pesanRamah(err), true);
   }
 }
 
@@ -2293,7 +2310,7 @@ async function saveNewUser(){
     toast('Staff ditambahkan', `${name} bisa login dengan username ${username}.`);
     closeModal();
     render('pengaturan');
-  }catch(err){ toast('Gagal membuat akun', err.message, true); }
+  }catch(err){ toast('Gagal membuat akun', pesanRamah(err), true); }
 }
 function openEditUser(id){
   const u = STATE.users.find(x=>x.id===id);
@@ -2339,7 +2356,7 @@ async function updateUser(id){
     toast('Tersimpan', `Data ${name} berhasil diperbarui.`);
     closeModal();
     render('pengaturan');
-  }catch(err){ toast('Gagal menyimpan', err.message, true); }
+  }catch(err){ toast('Gagal menyimpan', pesanRamah(err), true); }
 }
 async function deleteUser(id){
   const u = STATE.users.find(x=>x.id===id);
@@ -2353,7 +2370,7 @@ async function deleteUser(id){
     addLog(`Staff dihapus: ${u.name} (${u.username})`, 'info');
     toast('Staff dihapus', `${u.name} sudah dihapus dari daftar staff dan tidak bisa masuk lagi.`);
     render('pengaturan');
-  }catch(err){ toast('Gagal menghapus', err.message, true); }
+  }catch(err){ toast('Gagal menghapus', pesanRamah(err), true); }
 }
 /* ============================= BANNER PROMO (App Nasabah) ============================= */
 function bannerCard(b){
@@ -2408,7 +2425,7 @@ async function uploadBanner(){
     render('pengaturan');
   }catch(err){
     btn.innerHTML = 'Simpan Banner';
-    toast('Gagal upload', err.message, true);
+    toast('Gagal upload', pesanRamah(err), true);
   }
 }
 async function toggleBannerActive(id){
