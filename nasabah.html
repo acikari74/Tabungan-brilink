@@ -18,7 +18,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
 <style>
   :root{
     --primary:#F3A616; --primary-hover:#D6900E; --secondary:#0A1D3C; --secondary-light:#163666;
@@ -113,8 +112,7 @@
         <div id="login-err" style="color:var(--danger); font-size:12.5px; margin-top:12px; text-align:center;"></div>
       </div>
       <div style="text-align:center; font-size:11.5px; color:var(--text-muted); margin:20px 0;">
-        <a href="#" onclick="openLupaAkses(); return false;" style="color:var(--secondary); font-weight:700;">Lupa Username/Password?</a>
-        &nbsp;•&nbsp; Belum punya akses login? Hubungi staff agen Anda.
+        Lupa Username/Password atau belum punya akses login? Hubungi staff agen Anda langsung.
       </div>
     </div>
   </div>
@@ -193,7 +191,6 @@ const FIREBASE_CONFIG = {
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const functionsInstance = firebase.app().functions('asia-southeast2');
 const CUSTOMER_EMAIL_DOMAIN = '@nasabah.tabungan-app.local';
 // TEMPEL VAPID KEY DARI: Firebase Console > Project Settings > Cloud Messaging
 // > Web configuration > Web Push certificates > Generate key pair
@@ -288,46 +285,6 @@ function setLoginMode(mode){
     document.getElementById('li-label2').textContent = 'Password';
     passEl.placeholder = 'Masukkan Password';
   }
-}
-
-function openLupaAkses(){
-  openSheet(`
-    <h3 style="margin:0 0 4px;">Lupa Username/Password?</h3>
-    <p style="font-size:12.5px; color:var(--text-muted); margin:0 0 18px;">Masukkan No. Rekening & No. HP yang terdaftar di agen untuk reset akses login Anda.</p>
-    <form id="form-lupa">
-      <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">No. Rekening</label>
-      <input class="field-input" id="lupa-norek" placeholder="Masukkan No. Rekening" inputmode="numeric" style="margin:8px 0 16px;">
-      <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">No. HP Terdaftar</label>
-      <input class="field-input" id="lupa-hp" placeholder="Masukkan No. HP terdaftar" style="margin:8px 0 6px;">
-      <div id="lupa-err" style="color:var(--danger); font-size:12px; margin:8px 0;"></div>
-      <div id="lupa-ok" style="color:var(--success); font-size:12.5px; margin:8px 0; font-weight:700;"></div>
-      <div style="display:flex; gap:10px; margin-top:10px;">
-        <button type="button" class="btn-outline" style="flex:1;" onclick="closeSheet()">Batal</button>
-        <button type="submit" class="btn-primary" style="flex:1;" id="btn-lupa"><span>Reset Akses</span></button>
-      </div>
-    </form>
-  `);
-  document.getElementById('form-lupa').addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const norek = document.getElementById('lupa-norek').value.trim();
-    const hp = document.getElementById('lupa-hp').value.trim();
-    const errEl = document.getElementById('lupa-err');
-    const okEl = document.getElementById('lupa-ok');
-    errEl.textContent=''; okEl.textContent='';
-    if(!norek || !hp){ errEl.textContent = 'Isi No. Rekening dan No. HP terlebih dahulu.'; return; }
-    const btn = document.getElementById('btn-lupa');
-    btn.innerHTML = '<span class="spin"></span>'; btn.disabled = true;
-    try{
-      const resetFn = functionsInstance.httpsCallable('resetAccountAccess');
-      await resetFn({ norek, hp });
-      okEl.textContent = 'Berhasil! Akses Anda sudah direset. Tutup jendela ini, lalu login lagi lewat tab "Pertama Kali" pakai No. Rekening + No. HP untuk buat Username & Password baru.';
-      document.getElementById('form-lupa').style.display = 'none';
-    }catch(err){
-      btn.innerHTML = '<span>Reset Akses</span>'; btn.disabled = false;
-      console.error('resetAccountAccess gagal:', err);
-      errEl.textContent = err.message || `Terjadi kendala teknis (${err.code||'tidak diketahui'}). Coba lagi sebentar lagi.`;
-    }
-  });
 }
 
 document.getElementById('form-login').addEventListener('submit', async (e)=>{
@@ -443,11 +400,7 @@ async function mintaIzinNotifikasi(){
     if(VAPID_KEY.includes('TEMPEL_VAPID_KEY')){ console.warn('VAPID_KEY belum diisi, notifikasi push tidak aktif.'); return; }
 
     const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js', { scope: './' });
-    // Pakai app instance TERPISAH khusus notifikasi — supaya kalau bagian ini
-    // gagal (misal file service worker belum ke-upload), tidak ikut merusak
-    // fitur lain seperti login/reset password yang pakai app instance utama.
-    const msgApp = firebase.initializeApp(FIREBASE_CONFIG, 'messaging-app');
-    const messaging = msgApp.messaging();
+    const messaging = firebase.messaging();
     if(messaging.useServiceWorker) messaging.useServiceWorker(reg);
     const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
     if(token && STATE.customerId){
@@ -457,26 +410,7 @@ async function mintaIzinNotifikasi(){
       const n = payload.notification || {};
       showToast(n.title||'Notifikasi', n.body||'', '🔔');
     });
-  }catch(e){ console.error('Gagal mendaftar notifikasi (fitur lain tetap aman):', e); }
-}
-async function aktifkanNotifikasiManual(){
-  const btn = document.getElementById('btn-aktifkan-notif');
-  const asli = btn.innerHTML;
-  btn.innerHTML = '<span class="spin"></span> Mengaktifkan...';
-  btn.disabled = true;
-  try{
-    await mintaIzinNotifikasi();
-    if(Notification.permission==='granted'){
-      btn.innerHTML = '✅ Notifikasi Aktif';
-    } else {
-      btn.innerHTML = asli;
-      showToast('Belum aktif', 'Notifikasi belum diizinkan atau ada kendala teknis. Coba lagi nanti.', '🔔');
-    }
-  }catch(e){
-    btn.innerHTML = asli;
-    showToast('Gagal', 'Notifikasi tidak bisa diaktifkan saat ini. Fitur lain tetap berjalan normal.', '🔔');
-  }
-  btn.disabled = false;
+  }catch(e){ console.error('Gagal mendaftar notifikasi:', e); }
 }
 
 /* ---------- MASUK APLIKASI (real-time listeners) ---------- */
@@ -486,6 +420,7 @@ async function enterApp(){
   if(unsubTx) unsubTx();
   if(unsubGoals) unsubGoals();
   if(unsubBanners) unsubBanners();
+  mintaIzinNotifikasi();
   let firstLoadTx=true, firstLoadGoals=true, firstLoadBanners=true;
 
   unsubCustomer = db.collection('customers').doc(STATE.customerId).onSnapshot(doc=>{
@@ -780,7 +715,6 @@ function renderProfil(){
       ${profilRow('Bergabung', fmtDate(c.tglDaftar))}
       ${profilRow('Status', c.status)}
     </div>
-    <button class="btn-outline" style="width:100%; margin-bottom:10px;" onclick="aktifkanNotifikasiManual()" id="btn-aktifkan-notif">🔔 Aktifkan Notifikasi HP</button>
     <button class="btn-outline" style="width:100%; margin-bottom:10px;" onclick="openGantiPin()">Ganti Password</button>
     <button class="btn-outline" style="width:100%; color:var(--danger); border-color:#FEE2E2;" onclick="doLogout()">Keluar</button>
     <div id="pin-modal"></div>
