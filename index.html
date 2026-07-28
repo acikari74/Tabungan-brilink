@@ -135,9 +135,9 @@ body.dark .login-card h1{color:#fff;}
 .sidebar{
   width:246px; background:linear-gradient(180deg,var(--navy) 0%,var(--navy-2) 55%,var(--navy-3) 100%); flex-shrink:0;
   display:flex; flex-direction:column; padding:22px 16px; position:sticky; top:0; height:100vh; z-index:40;
-  transition:transform .25s; box-shadow:4px 0 24px rgba(0,0,0,.12);
+  transition:transform .25s; box-shadow:4px 0 24px rgba(0,0,0,.12); overflow-y:auto;
 }
-.brand{display:flex; align-items:center; gap:10px; padding:0 8px 24px; color:#fff;}
+.brand{display:flex; align-items:center; gap:10px; padding:0 8px 24px; color:#fff; flex-shrink:0;}
 .brand-mark{width:38px; height:38px; border-radius:11px; background:linear-gradient(135deg,rgba(255,255,255,.2),rgba(255,255,255,.06)); display:flex; align-items:center; justify-content:center; box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);}
 .brand-text b{display:block; font-size:14.5px; font-weight:700;}
 .brand-text span{display:block; font-size:10px; color:var(--gold-2); letter-spacing:1px; font-weight:600;}
@@ -151,8 +151,8 @@ body.dark .login-card h1{color:#fff;}
 .nav-item:hover{background:rgba(255,255,255,.08); color:#fff; transform:translateX(2px);}
 .nav-item.active{background:linear-gradient(90deg,rgba(255,255,255,.16),rgba(255,255,255,.06)); color:#fff; box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}
 .nav-item.active::before{content:''; position:absolute; left:-16px; top:8px; bottom:8px; width:3px; background:linear-gradient(180deg,var(--gold-2),var(--gold)); border-radius:2px; box-shadow:0 0 8px rgba(201,162,39,.6);}
-.sidebar-foot{margin-top:auto; padding-top:14px; border-top:1px solid rgba(255,255,255,.1);}
-.user-chip{display:flex; align-items:center; gap:10px; padding:8px; border-radius:10px; color:#fff;}
+.sidebar-foot{margin-top:auto; padding-top:14px; border-top:1px solid rgba(255,255,255,.1); flex-shrink:0; position:sticky; bottom:0; background:linear-gradient(180deg,transparent,var(--navy-3) 30%); padding-bottom:4px;}
+.user-chip{display:flex; align-items:center; gap:10px; padding:8px; border-radius:10px; color:#fff; background:rgba(255,255,255,.06);}
 .avatar{width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--gold-2),var(--gold)); color:var(--navy); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; box-shadow:0 3px 8px rgba(0,0,0,.25);}
 .user-chip small{display:block; color:rgba(255,255,255,.5); font-size:10.5px;}
 .user-chip b{font-size:12.5px;}
