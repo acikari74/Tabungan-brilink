@@ -414,7 +414,6 @@ tbody tr:hover{background:var(--bg);}
       <div class="nav-item" data-view="buku"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Buku Tabungan</div>
       <div class="nav-item" data-view="kartu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="3"/><path d="M1 10h22"/></svg>Kartu Member</div>
       <div class="nav-item" data-view="program"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Program Tabungan</div>
-      <div class="nav-item" data-view="approval" id="nav-approval" style="display:none; position:relative;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Approval<span class="badge-dot no-print" id="approval-count" style="display:none; position:static; margin-left:auto;">0</span></div>
     </div>
     <div class="nav-group">
       <div class="nav-label">Laporan &amp; Sistem</div>
@@ -528,7 +527,7 @@ function refreshCurrentView(){
 function setupRealtimeListeners(){
   stopRealtimeListeners();
   return new Promise((resolve)=>{
-    let loaded = { customers:false, transactions:false, goals:false, logs:false, banners:false, approvals:false };
+    let loaded = { customers:false, transactions:false, goals:false, logs:false, banners:false };
     const checkAllLoaded = ()=>{ if(Object.values(loaded).every(Boolean)) resolve(); };
 
     unsubRT.push(db.collection('customers').orderBy('tglDaftar').onSnapshot(snap=>{
@@ -557,13 +556,6 @@ function setupRealtimeListeners(){
       STATE.banners = snap.docs.map(d=>({id:d.id, ...d.data()}));
       loaded.banners = true; checkAllLoaded(); refreshCurrentView();
     }, err=>{ console.error('banners RT', err); loaded.banners=true; checkAllLoaded(); }));
-
-    unsubRT.push(db.collection('pending_approvals').onSnapshot(snap=>{
-      STATE.pendingApprovals = snap.docs.map(d=>({id:d.id, ...d.data()}));
-      loaded.approvals = true; checkAllLoaded();
-      updateApprovalBadge();
-      refreshCurrentView();
-    }, err=>{ console.error('approvals RT', err); loaded.approvals=true; checkAllLoaded(); }));
   });
 }
 async function fbSaveArray(coll, arr){
@@ -621,7 +613,6 @@ let STATE = {
   logs: [],
   goals: [],
   banners: [],
-  pendingApprovals: [],
   currentUser: null,
   view: 'dashboard',
   darkMode: false,
@@ -929,8 +920,6 @@ async function loadDataAndEnter(authUser, profileArg){
   document.getElementById('side-username').textContent = STATE.currentUser.name;
   document.getElementById('side-role').textContent = STATE.currentUser.role;
   document.querySelector('.nav-item[data-view="aktivitas"]').style.display = STATE.currentUser.role!=='Admin' ? 'none' : '';
-  document.getElementById('nav-approval').style.display = canApprove(STATE.currentUser) ? '' : 'none';
-  updateApprovalBadge();
   addLog(`${STATE.currentUser.name} berhasil login`, 'login');
   render('dashboard');
 }
@@ -1008,7 +997,6 @@ function render(view){
   else if(view==='buku') root.innerHTML = viewBuku();
   else if(view==='kartu') root.innerHTML = viewKartu();
   else if(view==='program') root.innerHTML = viewProgram();
-  else if(view==='approval') root.innerHTML = canApprove(STATE.currentUser) ? viewApproval() : viewDashboard();
   else if(view==='laporan') root.innerHTML = viewLaporan('harian');
   else if(view==='aktivitas') root.innerHTML = viewAktivitas();
   else if(view==='pengaturan') root.innerHTML = viewPengaturan();
@@ -1017,12 +1005,6 @@ function render(view){
   bindViewEvents(view);
 }
 
-function updateApprovalBadge(){
-  const el = document.getElementById('approval-count');
-  if(!el) return;
-  const n = STATE.pendingApprovals.filter(a=>a.status==='pending').length;
-  if(n>0){ el.style.display='inline-flex'; el.textContent = n>99?'99+':n; } else el.style.display='none';
-}
 function updateNotifCount(){
   const lastSeen = localStorage.getItem('notif_last_seen_'+(STATE.currentUser?STATE.currentUser.id:'')) || '0';
   const c = STATE.logs.filter(l=>['setor','tarik','baru'].includes(l.type) && new Date(l.time||0).getTime() > Number(lastSeen)).length;
@@ -1878,71 +1860,33 @@ const GOAL_CATS = {
   laptop: { label:'Laptop',    emoji:'💻' },
   lain:   { label:'Lainnya',   emoji:'🎯' },
 };
-/* ============================= APPROVAL SETORAN PROGRAM (Kepala Toko) ============================= */
+/* ============================= VERIFIKASI PIN KEPALA TOKO/ADMIN (approval instan) ============================= */
 function canApprove(user){
   return user && (user.role==='Admin' || user.role==='Kepala Toko');
 }
-async function ajukanApprovalSetorGoal(g, amount){
-  const c = STATE.customers.find(x=>x.id===g.customerId);
-  const req = {
-    id: uid('AP'), type:'setor_program', status:'pending',
-    goalId: g.id, namaBarang: g.namaBarang, customerId: g.customerId, customerNama: c?c.nama:'—',
-    amount, requestedBy: STATE.currentUser.name, requestedById: STATE.currentUser.id,
-    requestedAt: new Date().toISOString(),
-  };
-  try{
-    await db.collection('pending_approvals').doc(req.id).set(req);
-  }catch(err){
-    toast('Gagal mengajukan approval', pesanRamah(err), true);
-    return;
-  }
-  addLog(`Pengajuan setoran program menunggu approval Kepala Toko: ${g.namaBarang} — ${c?c.nama:''} (${rupiah(amount)})`, 'info');
-  closeModal();
+function mintaPinApproval(onSukses){
   openModal(`
-    <div class="modal-head"><h3>⏳ Menunggu Approval</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-head"><h3>🔒 Persetujuan Kepala Toko</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <div class="login-hint">Setoran <b>${rupiah(amount)}</b> untuk program <b>${g.namaBarang}</b> (${c?c.nama:''}) sudah diajukan dan menunggu persetujuan Admin/Kepala Toko sebelum tercatat ke saldo nasabah.</div>
+      <div class="login-hint" style="margin-top:0;">Setoran program ini perlu disetujui langsung oleh Admin atau Kepala Toko. Minta beliau memasukkan PIN persetujuannya di sini.</div>
+      <div class="field" style="margin-top:14px;"><label>PIN Kepala Toko/Admin</label><input id="approval-pin" type="password" inputmode="numeric" placeholder="Masukkan PIN" style="font-size:20px; font-weight:700; letter-spacing:4px; text-align:center;" maxlength="8"></div>
+      <div id="approval-pin-err" style="color:var(--red); font-size:12.5px; margin-top:8px; text-align:center;"></div>
     </div>
-    <div class="modal-foot"><button class="btn btn-primary" style="width:100%;" onclick="closeModal()">Tutup</button></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="verifikasiPinApproval()">Verifikasi & Lanjutkan</button></div>
   `);
+  setTimeout(()=>document.getElementById('approval-pin')?.focus(), 100);
+  window.__onPinApprovalSukses = onSukses;
 }
-function viewApproval(){
-  const pending = STATE.pendingApprovals.filter(a=>a.status==='pending').sort((a,b)=>new Date(a.requestedAt)-new Date(b.requestedAt));
-  return `
-  <div class="page-head"><div><h2>Approval Setoran Program</h2><p>Setoran yang diajukan staff, menunggu persetujuan Anda.</p></div></div>
-  <div class="panel">
-    ${pending.length ? `<div class="table-wrap"><table><thead><tr><th>Diajukan</th><th>Nasabah</th><th>Program</th><th>Nominal</th><th>Diajukan Oleh</th><th></th></tr></thead><tbody>
-      ${pending.map(a=>`<tr>
-        <td>${fmtDate(a.requestedAt)} ${fmtTime(a.requestedAt)}</td>
-        <td>${a.customerNama}</td>
-        <td>${a.namaBarang}</td>
-        <td><b>${rupiah(a.amount)}</b></td>
-        <td>${a.requestedBy}</td>
-        <td style="display:flex; gap:6px;">
-          <button class="btn btn-green btn-sm" onclick="prosesApproval('${a.id}', true)">✓ Setujui</button>
-          <button class="btn btn-outline btn-sm" style="color:var(--red); border-color:var(--red);" onclick="prosesApproval('${a.id}', false)">✕ Tolak</button>
-        </td>
-      </tr>`).join('')}
-    </tbody></table></div>` : `<div class="empty-state">Tidak ada pengajuan setoran yang menunggu approval.</div>`}
-  </div>`;
-}
-async function prosesApproval(id, disetujui){
-  const a = STATE.pendingApprovals.find(x=>x.id===id);
-  if(!a) return;
-  if(disetujui){
-    const g = STATE.goals.find(x=>x.id===a.goalId);
-    if(!g){ toast('Gagal', 'Program tabungan ini sudah tidak ada.', true); return; }
-    const sisaTarget = Math.max(0, g.target - g.terkumpul);
-    if(a.amount > sisaTarget){ toast('Tidak bisa disetujui', `Nominal (${rupiah(a.amount)}) sudah melebihi sisa target program saat ini (${rupiah(sisaTarget)}). Program mungkin sudah berubah sejak diajukan.`, true); return; }
-    await setorKeGoal(g, a.amount);
-    addLog(`Approval DISETUJUI oleh ${STATE.currentUser.name}: setoran ${rupiah(a.amount)} — ${a.customerNama} (${a.namaBarang})`, 'setor');
-    toast('Disetujui', `Setoran ${rupiah(a.amount)} untuk ${a.customerNama} berhasil dicatat.`);
-  } else {
-    addLog(`Approval DITOLAK oleh ${STATE.currentUser.name}: setoran ${rupiah(a.amount)} — ${a.customerNama} (${a.namaBarang})`, 'info');
-    toast('Ditolak', `Pengajuan setoran ${a.customerNama} ditolak.`);
-  }
-  await db.collection('pending_approvals').doc(id).update({ status: disetujui?'approved':'rejected', processedBy: STATE.currentUser.name, processedAt: new Date().toISOString() });
-  render('approval');
+function verifikasiPinApproval(){
+  const pin = document.getElementById('approval-pin').value.trim();
+  const errEl = document.getElementById('approval-pin-err');
+  if(!pin){ errEl.textContent = 'Isi PIN terlebih dahulu.'; return; }
+  const approver = STATE.users.find(u => canApprove(u) && u.approvalPin && u.approvalPin===pin);
+  if(!approver){ errEl.textContent = 'PIN salah atau bukan PIN Admin/Kepala Toko.'; return; }
+  const callback = window.__onPinApprovalSukses;
+  window.__onPinApprovalSukses = null;
+  closeModal();
+  if(callback) callback(approver);
 }
 
 function goalScheme(price, months){
@@ -2195,10 +2139,17 @@ async function confirmSetorGoal(goalId){
   const sisaTarget = Math.max(0, g.target - g.terkumpul);
   if(amount > sisaTarget){ toast('Melebihi sisa target', `Setoran tidak boleh melebihi sisa target program (${rupiah(sisaTarget)}). Program sudah terkumpul ${rupiah(g.terkumpul)} dari target ${rupiah(g.target)}.`, true); return; }
   if(!canApprove(STATE.currentUser)){
-    await ajukanApprovalSetorGoal(g, amount);
+    mintaPinApproval(async (approver)=>{
+      await prosesSetorGoalSetelahApproval(g, amount, approver);
+    });
     return;
   }
+  await prosesSetorGoalSetelahApproval(g, amount, null);
+}
+async function prosesSetorGoalSetelahApproval(g, amount, approver){
+  const c = STATE.customers.find(x=>x.id===g.customerId);
   const tx = await setorKeGoal(g, amount);
+  if(approver) addLog(`Setoran program disetujui via PIN oleh ${approver.name} (${approver.role}): ${rupiah(amount)} — ${c?c.nama:''} (${g.namaBarang})`, 'setor');
   const done = g.status==='selesai';
   closeModal();
   render('program');
@@ -2206,6 +2157,7 @@ async function confirmSetorGoal(goalId){
     <div class="modal-head"><h3>${done?'🎉 Target Tercapai!':'✅ Setoran Berhasil'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(amount)}</b><br><span>${g.namaBarang} — ${c?c.nama:''}</span></div></div>
+      ${approver ? `<div class="login-hint">Disetujui oleh <b>${approver.name}</b> (${approver.role})</div>` : ''}
       ${done ? `<div class="login-hint">Program sudah mencapai target ${rupiah(g.target)} 🎉</div>` : ''}
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${c?waTombol(c.hp, done ? `Selamat ${c.nama}! Program tabungan "${g.namaBarang}" Anda sudah mencapai target ${rupiah(g.target)}. Silakan hubungi kami untuk proses selanjutnya. Terima kasih - ${STATE.settings.name}.` : `Halo ${c.nama}, setoran ${rupiah(amount)} untuk program "${g.namaBarang}" berhasil dicatat. Terkumpul: ${rupiah(g.terkumpul)} / ${rupiah(g.target)}. Terima kasih.`):''}${tx?`<button class="btn btn-primary" onclick="printReceipt('${tx.id}')">🖨️ Cetak Struk</button>`:''}</div>
@@ -2438,7 +2390,8 @@ function openAddUser(){
       <div class="field"><label>Nama Lengkap</label><input id="u-name" placeholder="Nama staff"></div>
       <div class="field"><label>Username</label><input id="u-username" placeholder="username login"></div>
       <div class="field"><label>Password</label><input id="u-password" type="text" placeholder="password login"></div>
-      <div class="field"><label>Role</label><select id="u-role"><option>Staff</option><option>Kepala Toko</option><option>Admin</option></select></div>
+      <div class="field"><label>Role</label><select id="u-role" onchange="document.getElementById('u-pin-wrap').style.display = this.value==='Staff' ? 'none' : 'block';"><option>Staff</option><option>Kepala Toko</option><option>Admin</option></select></div>
+      <div class="field" id="u-pin-wrap" style="display:none;"><label>PIN Persetujuan (4-8 digit)</label><input id="u-pin" type="text" inputmode="numeric" placeholder="Dipakai untuk menyetujui setoran program staff" maxlength="8"></div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveNewUser()">Simpan Staff</button></div>
   `);
@@ -2448,8 +2401,10 @@ async function saveNewUser(){
   const username = document.getElementById('u-username').value.trim();
   const password = document.getElementById('u-password').value;
   const role = document.getElementById('u-role').value;
+  const approvalPin = document.getElementById('u-pin').value.trim();
   if(!name || !username || !password){ toast('Data belum lengkap', 'Nama, username, dan password wajib diisi.', true); return; }
   if(password.length<6){ toast('Password terlalu pendek', 'Minimal 6 karakter.', true); return; }
+  if(role!=='Staff' && approvalPin.length<4){ toast('PIN belum diisi', 'Admin/Kepala Toko wajib punya PIN persetujuan minimal 4 digit.', true); return; }
   if(STATE.users.some(u=>u.username.toLowerCase()===username.toLowerCase())){ toast('Username sudah dipakai', 'Gunakan username lain.', true); return; }
   try{
     // Pakai instance Firebase app kedua supaya sesi login Admin yang aktif tidak ikut tertimpa
@@ -2460,7 +2415,7 @@ async function saveNewUser(){
     const newUid = cred.user.uid;
     await secAuth.signOut();
     await secApp.delete();
-    await db.collection('profiles').doc(newUid).set({ name, username: username.toLowerCase(), role });
+    await db.collection('profiles').doc(newUid).set({ name, username: username.toLowerCase(), role, approvalPin: role!=='Staff' ? approvalPin : '' });
     STATE.users = await fbLoadProfiles();
     addLog(`Staff baru ditambahkan: ${name} (${username})`, 'info');
     toast('Staff ditambahkan', `${name} bisa login dengan username ${username}.`);
@@ -2477,7 +2432,8 @@ function openEditUser(id){
     <div class="modal-body">
       <div class="field"><label>Nama Lengkap</label><input id="u-name" value="${u.name}"></div>
       <div class="field"><label>Username</label><input id="u-username" value="${u.username}"></div>
-      <div class="field"><label>Role</label><select id="u-role"><option ${u.role==='Staff'?'selected':''}>Staff</option><option ${u.role==='Kepala Toko'?'selected':''}>Kepala Toko</option><option ${u.role==='Admin'?'selected':''}>Admin</option></select></div>
+      <div class="field"><label>Role</label><select id="u-role" onchange="document.getElementById('u-pin-wrap').style.display = this.value==='Staff' ? 'none' : 'block';"><option ${u.role==='Staff'?'selected':''}>Staff</option><option ${u.role==='Kepala Toko'?'selected':''}>Kepala Toko</option><option ${u.role==='Admin'?'selected':''}>Admin</option></select></div>
+      <div class="field" id="u-pin-wrap" style="display:${u.role==='Staff'?'none':'block'};"><label>PIN Persetujuan (4-8 digit)</label><input id="u-pin" type="text" inputmode="numeric" value="${u.approvalPin||''}" placeholder="Dipakai untuk menyetujui setoran program staff" maxlength="8"></div>
       ${isSelf ? `<div class="field"><label>Password Baru (opsional, untuk akun saya sendiri)</label><input id="u-password" type="text" placeholder="Kosongkan jika tidak diubah"></div>` : `<div class="login-hint">Untuk mereset password staff lain, gunakan Firebase Console → Authentication → Users → pilih akun → Reset Password. Ini demi keamanan, hanya pemilik akun yang bisa mengganti passwordnya sendiri lewat aplikasi.</div>`}
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="updateUser('${u.id}')">Simpan Perubahan</button></div>
@@ -2489,13 +2445,15 @@ async function updateUser(id){
   const name = document.getElementById('u-name').value.trim();
   const username = document.getElementById('u-username').value.trim();
   const role = document.getElementById('u-role').value;
+  const approvalPin = document.getElementById('u-pin').value.trim();
   const passwordEl = document.getElementById('u-password');
   const password = passwordEl ? passwordEl.value : '';
   if(!name || !username){ toast('Data belum lengkap', 'Nama dan username wajib diisi.', true); return; }
+  if(role!=='Staff' && approvalPin.length<4){ toast('PIN belum diisi', 'Admin/Kepala Toko wajib punya PIN persetujuan minimal 4 digit.', true); return; }
   if(STATE.users.some(x=>x.id!==id && x.username.toLowerCase()===username.toLowerCase())){ toast('Username sudah dipakai', 'Gunakan username lain.', true); return; }
   if(u.role==='Admin' && role==='Staff' && STATE.users.filter(x=>x.role==='Admin').length<=1){ toast('Tidak bisa diubah', 'Minimal harus ada 1 akun Admin.', true); return; }
   try{
-    await db.collection('profiles').doc(id).update({ name, username: username.toLowerCase(), role });
+    await db.collection('profiles').doc(id).update({ name, username: username.toLowerCase(), role, approvalPin: role!=='Staff' ? approvalPin : '' });
     if(password && id===STATE.currentUser.id){
       if(password.length<6){ toast('Password terlalu pendek', 'Minimal 6 karakter.', true); }
       else{
