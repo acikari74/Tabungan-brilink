@@ -917,7 +917,7 @@ document.getElementById('global-search').addEventListener('input', (e)=>{
   if(STATE.view!=='nasabah') render('nasabah');
   setTimeout(()=>{ const inp=document.getElementById('nasabah-search'); if(inp){ inp.value=e.target.value; filterNasabah(); document.getElementById('global-search').focus(); document.getElementById('global-search').value=e.target.value; } },30);
 });
-document.getElementById('notif-btn').addEventListener('click', ()=>render('aktivitas'));
+document.getElementById('notif-btn').addEventListener('click', ()=>{ render('aktivitas'); tandaiNotifDibaca(); });
 
 /* ============================= TOAST ============================= */
 function toast(title, msg, isErr){
@@ -964,9 +964,15 @@ function render(view){
 }
 
 function updateNotifCount(){
-  const c = STATE.logs.filter(l=>['setor','tarik','baru'].includes(l.type)).length;
+  const lastSeen = localStorage.getItem('notif_last_seen_'+(STATE.currentUser?STATE.currentUser.id:'')) || '0';
+  const c = STATE.logs.filter(l=>['setor','tarik','baru'].includes(l.type) && new Date(l.time||0).getTime() > Number(lastSeen)).length;
   const el = document.getElementById('notif-count');
   if(c>0){ el.style.display='flex'; el.textContent = c>99?'99+':c; } else el.style.display='none';
+}
+function tandaiNotifDibaca(){
+  if(!STATE.currentUser) return;
+  localStorage.setItem('notif_last_seen_'+STATE.currentUser.id, String(Date.now()));
+  updateNotifCount();
 }
 
 /* ============================= DASHBOARD ============================= */
