@@ -1890,7 +1890,12 @@ async function ajukanApprovalSetorGoal(g, amount){
     amount, requestedBy: STATE.currentUser.name, requestedById: STATE.currentUser.id,
     requestedAt: new Date().toISOString(),
   };
-  await db.collection('pending_approvals').doc(req.id).set(req);
+  try{
+    await db.collection('pending_approvals').doc(req.id).set(req);
+  }catch(err){
+    toast('Gagal mengajukan approval', pesanRamah(err), true);
+    return;
+  }
   addLog(`Pengajuan setoran program menunggu approval Kepala Toko: ${g.namaBarang} — ${c?c.nama:''} (${rupiah(amount)})`, 'info');
   closeModal();
   openModal(`
