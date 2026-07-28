@@ -513,6 +513,51 @@ async function fbLoadCollection(coll, orderField, dir){
     return snap.docs.map(d=>({ id:d.id, ...d.data() }));
   }catch(e){ console.error(coll, e); toast('Gagal memuat data', e.message, true); return []; }
 }
+
+/* ---------- Real-time listeners: data selalu sinkron antar perangkat/staff tanpa perlu refresh ---------- */
+let unsubRT = [];
+function stopRealtimeListeners(){ unsubRT.forEach(fn=>fn()); unsubRT = []; }
+function refreshCurrentView(){
+  // Jangan render ulang kalau ada modal terbuka — supaya tidak mengganggu
+  // staff yang lagi ngisi form di tengah jalan.
+  const modalRoot = document.getElementById('modal-root');
+  if(modalRoot && modalRoot.innerHTML.trim()) return;
+  if(STATE.view) render(STATE.view);
+}
+function setupRealtimeListeners(){
+  stopRealtimeListeners();
+  return new Promise((resolve)=>{
+    let loaded = { customers:false, transactions:false, goals:false, logs:false, banners:false };
+    const checkAllLoaded = ()=>{ if(Object.values(loaded).every(Boolean)) resolve(); };
+
+    unsubRT.push(db.collection('customers').orderBy('tglDaftar').onSnapshot(snap=>{
+      STATE.customers = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      loaded.customers = true; checkAllLoaded(); refreshCurrentView();
+    }, err=>{ console.error('customers RT', err); loaded.customers=true; checkAllLoaded(); }));
+
+    unsubRT.push(db.collection('transactions').orderBy('date').onSnapshot(snap=>{
+      STATE.transactions = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      loaded.transactions = true; checkAllLoaded(); refreshCurrentView();
+    }, err=>{ console.error('transactions RT', err); loaded.transactions=true; checkAllLoaded(); }));
+
+    unsubRT.push(db.collection('goals').orderBy('mulai').onSnapshot(snap=>{
+      STATE.goals = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      loaded.goals = true; checkAllLoaded(); refreshCurrentView();
+    }, err=>{ console.error('goals RT', err); loaded.goals=true; checkAllLoaded(); }));
+
+    unsubRT.push(db.collection('logs').orderBy('time','desc').onSnapshot(snap=>{
+      STATE.logs = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      loaded.logs = true; checkAllLoaded();
+      updateNotifCount();
+      refreshCurrentView();
+    }, err=>{ console.error('logs RT', err); loaded.logs=true; checkAllLoaded(); }));
+
+    unsubRT.push(db.collection('promo_banners').orderBy('urutan').onSnapshot(snap=>{
+      STATE.banners = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      loaded.banners = true; checkAllLoaded(); refreshCurrentView();
+    }, err=>{ console.error('banners RT', err); loaded.banners=true; checkAllLoaded(); }));
+  });
+}
 async function fbSaveArray(coll, arr){
   if(!arr || !arr.length) return;
   try{
@@ -864,11 +909,7 @@ async function loadDataAndEnter(authUser, profileArg){
     await dbSet('agent-settings', STATE.settings);
   }
   STATE.users = await fbLoadProfiles();
-  STATE.customers = await dbGet('customers', []);
-  STATE.transactions = await dbGet('transactions', []);
-  STATE.logs = await dbGet('logs', []);
-  STATE.goals = await dbGet('goals', []);
-  STATE.banners = await fbLoadCollection('promo_banners', 'urutan');
+  await setupRealtimeListeners();
   STATE.darkMode = STATE.settings.darkMode || false;
   applyDarkMode();
 
@@ -895,6 +936,7 @@ async function fbLoadProfiles(){
 document.getElementById('logout-btn').addEventListener('click', async ()=>{
   if(!confirm('Keluar dari akun ini?')) return;
   addLog(`${STATE.currentUser.name} logout`, 'logout');
+  stopRealtimeListeners();
   await auth.signOut();
   STATE.currentUser = null;
   document.getElementById('app').classList.remove('active');
