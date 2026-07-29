@@ -320,7 +320,7 @@ tbody tr:hover{background:var(--bg);}
 .goal-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); transition:transform .2s, box-shadow .2s; position:relative; overflow:hidden;}
 .goal-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-lg);}
 .goal-card.done{border-color:var(--green);}
-.goal-card.done::after{content:'âœ“ TERCAPAI'; position:absolute; top:14px; right:-32px; background:var(--green); color:#fff; font-size:9px; font-weight:700; letter-spacing:1px; padding:4px 36px; transform:rotate(38deg);}
+.goal-card.done::after{content:'✓ TERCAPAI'; position:absolute; top:14px; right:-32px; background:var(--green); color:#fff; font-size:9px; font-weight:700; letter-spacing:1px; padding:4px 36px; transform:rotate(38deg);}
 .goal-head{display:flex; align-items:flex-start; gap:12px; margin-bottom:14px;}
 .goal-icon{width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:20px;}
 .goal-icon.hp{background:rgba(37,99,168,.12); color:var(--accent);}
@@ -379,7 +379,7 @@ tbody tr:hover{background:var(--bg);}
 </head>
 <body>
 
-<div id="boot" class="center-loading"><div class="big-spin"></div><div>Memuat Tabungan Customerâ€¦</div></div>
+<div id="boot" class="center-loading"><div class="big-spin"></div><div>Memuat Tabungan Customer…</div></div>
 <div id="toast-wrap"></div>
 
 <!-- LOGIN -->
@@ -395,7 +395,7 @@ tbody tr:hover{background:var(--bg);}
       <div class="field"><label>Password</label><input type="password" id="login-pass" placeholder="Masukkan password"></div>
       <button type="submit" class="btn btn-primary" id="login-btn"><span>Masuk</span></button>
     </form>
-    <div class="login-hint" id="login-hint-box">Menghubungkan ke databaseâ€¦</div>
+    <div class="login-hint" id="login-hint-box">Menghubungkan ke database…</div>
   </div>
 </div>
 
@@ -437,7 +437,7 @@ tbody tr:hover{background:var(--bg);}
       <button class="hamburger icon-btn" id="hamburger-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
       <div class="searchbox">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="global-search" placeholder="Cari nama, no. rekening, HP, RFIDâ€¦">
+        <input id="global-search" placeholder="Cari nama, no. rekening, HP, RFID…">
       </div>
       <div class="topbar-right">
         <button class="icon-btn" id="dark-toggle" title="Mode Gelap">
@@ -459,7 +459,7 @@ tbody tr:hover{background:var(--bg);}
 /* ============================= FIREBASE CONNECTION ============================= */
 // Config ini SUDAH tersambung ke project Firebase "Buku tabungan" milik Anda.
 // apiKey Firebase memang aman ditempel di kode publik (bukan rahasia seperti
-// password) â€” keamanan data Anda dijaga oleh Firestore Security Rules, bukan
+// password) — keamanan data Anda dijaga oleh Firestore Security Rules, bukan
 // oleh nilai-nilai di bawah ini. Karena sudah diisi, semua perangkat yang
 // membuka file HTML ini akan otomatis tersambung tanpa perlu tempel apapun.
 const DEFAULT_FIREBASE_CONFIG = {
@@ -518,7 +518,7 @@ async function fbLoadCollection(coll, orderField, dir){
 let unsubRT = [];
 function stopRealtimeListeners(){ unsubRT.forEach(fn=>fn()); unsubRT = []; }
 function refreshCurrentView(){
-  // Jangan render ulang kalau ada modal terbuka â€” supaya tidak mengganggu
+  // Jangan render ulang kalau ada modal terbuka — supaya tidak mengganggu
   // staff yang lagi ngisi form di tengah jalan.
   const modalRoot = document.getElementById('modal-root');
   if(modalRoot && modalRoot.innerHTML.trim()) return;
@@ -651,7 +651,7 @@ function custSearchFieldHTML(baseId, label, list, presetId, opts){
   opts = opts || {};
   CUST_SEARCH_DATA[baseId] = { list, onPick: opts.onPick || null };
   const preset = presetId ? list.find(c=>c.id===presetId) : null;
-  const presetLabel = preset ? `${preset.nama} â€” ${preset.noRekening}` : '';
+  const presetLabel = preset ? `${preset.nama} — ${preset.noRekening}` : '';
   return `
   <div class="field" style="position:relative;">
     <label>${label}</label>
@@ -672,14 +672,14 @@ function filterCustSearch(baseId){
   resultsEl.style.display = 'block';
   resultsEl.innerHTML = matches.length ? matches.map(c=>`
     <div style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px;" onmousedown="pickCustSearch('${baseId}','${c.id}')">
-      <b>${c.nama}</b><br><span style="color:var(--muted); font-size:11.5px;">${c.noRekening}${c.saldo!==undefined?' â€¢ '+rupiah(c.saldo):''}</span>
+      <b>${c.nama}</b><br><span style="color:var(--muted); font-size:11.5px;">${c.noRekening}${c.saldo!==undefined?' • '+rupiah(c.saldo):''}</span>
     </div>`).join('') : `<div style="padding:12px 14px; color:var(--muted); font-size:12.5px;">Tidak ditemukan</div>`;
 }
 function pickCustSearch(baseId, custId){
   const data = CUST_SEARCH_DATA[baseId];
   const c = data.list.find(x=>x.id===custId);
   document.getElementById(baseId).value = custId;
-  document.getElementById(baseId+'-search').value = c ? `${c.nama} â€” ${c.noRekening}` : '';
+  document.getElementById(baseId+'-search').value = c ? `${c.nama} — ${c.noRekening}` : '';
   document.getElementById(baseId+'-results').style.display='none';
   if(data.onPick) data.onPick(custId);
 }
@@ -784,7 +784,7 @@ boot();
 
 async function afterConnected(){
   // meta/init adalah satu dokumen publik (boleh dibaca tanpa login) yang cuma
-  // menyimpan status "sudah ada Admin atau belum" â€” dipakai untuk memutuskan
+  // menyimpan status "sudah ada Admin atau belum" — dipakai untuk memutuskan
   // menampilkan layar Buat Admin atau layar Login biasa.
   try{
     const metaDoc = await db.collection('meta').doc('init').get();
@@ -801,20 +801,20 @@ function applyDarkMode(){
 /* ---------- LAYAR: hubungkan database ---------- */
 function renderConnectScreen(errMsg){
   document.getElementById('login-agent-name').textContent = 'Hubungkan Database';
-  document.getElementById('login-subtitle').textContent = 'Sekali per perangkat â€” data akan tersimpan aman di Firebase';
+  document.getElementById('login-subtitle').textContent = 'Sekali per perangkat — data akan tersimpan aman di Firebase';
   document.getElementById('login-card').querySelector('form').outerHTML = `
     <form id="connect-form">
       <div class="field"><label>Firebase Config</label><textarea id="fb-config-input" rows="7" style="width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid var(--border); background:var(--bg); color:var(--text); font-family:'Space Mono',monospace; font-size:11.5px; resize:vertical;" placeholder='Tempel di sini, contoh:&#10;const firebaseConfig = {&#10;  apiKey: "...",&#10;  authDomain: "...",&#10;  projectId: "...",&#10;  ...&#10;};'></textarea></div>
       <button type="submit" class="btn btn-primary" id="connect-btn" style="margin-top:6px;"><span>Hubungkan</span></button>
     </form>`;
-  document.getElementById('login-hint-box').innerHTML = (errMsg?`<b style="color:var(--red);">${errMsg}</b><br>`:'') + 'Ambil dari Firebase Console: Project Settings â†’ General â†’ scroll ke "Your apps" â†’ SDK setup and configuration. Tempel apa adanya, aplikasi akan membaca nilainya otomatis.';
+  document.getElementById('login-hint-box').innerHTML = (errMsg?`<b style="color:var(--red);">${errMsg}</b><br>`:'') + 'Ambil dari Firebase Console: Project Settings → General → scroll ke "Your apps" → SDK setup and configuration. Tempel apa adanya, aplikasi akan membaca nilainya otomatis.';
   document.getElementById('connect-form').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const text = document.getElementById('fb-config-input').value;
     const cfg = parseFirebaseConfigText(text);
     if(!cfg){ toast('Config tidak terbaca', 'Pastikan Anda menempel seluruh blok firebaseConfig.', true); return; }
     const btn = document.getElementById('connect-btn');
-    btn.innerHTML = '<span class="loading-spin"></span> Menghubungkanâ€¦';
+    btn.innerHTML = '<span class="loading-spin"></span> Menghubungkan…';
     saveFbConfig(cfg);
     if(!initFbClient()){ btn.innerHTML='<span>Hubungkan</span>'; toast('Gagal', 'Config tidak valid.', true); return; }
     await afterConnected();
@@ -824,7 +824,7 @@ function renderConnectScreen(errMsg){
 /* ---------- LAYAR: buat admin pertama (database masih kosong) ---------- */
 function renderBootstrapAdminScreen(){
   document.getElementById('login-agent-name').textContent = 'Buat Akun Admin';
-  document.getElementById('login-subtitle').textContent = 'Database masih kosong â€” buat akun Admin pertama';
+  document.getElementById('login-subtitle').textContent = 'Database masih kosong — buat akun Admin pertama';
   document.getElementById('login-card').querySelector('form').outerHTML = `
     <form id="bootstrap-form">
       <div class="field"><label>Nama Lengkap</label><input type="text" id="bs-name" placeholder="Nama Anda"></div>
@@ -841,7 +841,7 @@ function renderBootstrapAdminScreen(){
     if(!name || !username || !password){ toast('Data belum lengkap', 'Semua kolom wajib diisi.', true); return; }
     if(password.length<6){ toast('Password terlalu pendek', 'Minimal 6 karakter.', true); return; }
     const btn = document.getElementById('bootstrap-btn');
-    btn.innerHTML = '<span class="loading-spin"></span> Membuat akunâ€¦';
+    btn.innerHTML = '<span class="loading-spin"></span> Membuat akun…';
     try{
       const cred = await auth.createUserWithEmailAndPassword(usernameToEmail(username), password);
       await db.collection('profiles').doc(cred.user.uid).set({ name, username: username.toLowerCase(), role:'Admin' });
@@ -875,7 +875,7 @@ async function doLogin(e){
   const p = document.getElementById('login-pass').value;
   if(!u || !p){ toast('Data belum lengkap', 'Isi username dan password terlebih dahulu.', true); return; }
   const btn = document.getElementById('login-btn');
-  btn.innerHTML = '<span class="loading-spin"></span> Memeriksaâ€¦';
+  btn.innerHTML = '<span class="loading-spin"></span> Memeriksa…';
   try{
     const cred = await auth.signInWithEmailAndPassword(usernameToEmail(u), p);
     const doc = await db.collection('profiles').doc(cred.user.uid).get();
@@ -1054,12 +1054,12 @@ function viewDashboard(){
   const recentRows = recentTx.length ? recentTx.map(t=>{
     const c = STATE.customers.find(x=>x.id===t.customerId);
     const isPos = t.type==='setor';
-    return `<div class="mini-row"><div class="dot" style="background:${isPos?'var(--green)':'var(--red)'}"></div><div class="txt"><b>${c?c.nama:'â€”'}</b><span>${t.type==='setor'?'Setor Tunai':t.type==='tarik'?'Tarik Tunai':'Koreksi Saldo'} â€¢ ${fmtTime(t.date)}</span></div><b style="color:${isPos?'var(--green)':'var(--red)'}; font-size:12.5px;">${isPos?'+':'-'}${rupiah(t.amount)}</b></div>`;
+    return `<div class="mini-row"><div class="dot" style="background:${isPos?'var(--green)':'var(--red)'}"></div><div class="txt"><b>${c?c.nama:'—'}</b><span>${t.type==='setor'?'Setor Tunai':t.type==='tarik'?'Tarik Tunai':'Koreksi Saldo'} • ${fmtTime(t.date)}</span></div><b style="color:${isPos?'var(--green)':'var(--red)'}; font-size:12.5px;">${isPos?'+':'-'}${rupiah(t.amount)}</b></div>`;
   }).join('') : `<div class="empty-state" style="padding:20px;">Belum ada transaksi</div>`;
 
   return `
   <div class="page-head">
-    <div><h2>Dashboard</h2><p>Ringkasan operasional hari ini â€” ${fmtDate(new Date())}</p></div>
+    <div><h2>Dashboard</h2><p>Ringkasan operasional hari ini — ${fmtDate(new Date())}</p></div>
     <button class="btn btn-primary btn-sm" onclick="render('transaksi')">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Transaksi Baru</button>
   </div>
@@ -1085,11 +1085,11 @@ function viewDashboard(){
   </div>
   ${(()=>{ const ag = STATE.goals.filter(g=>g.status==='aktif'); if(!ag.length) return '';
     return `<div class="panel" style="margin-top:16px;">
-      <div class="panel-head"><h3>Program Tabungan Berjalan</h3><button class="btn btn-outline btn-sm" onclick="render('program')">Lihat Semua â†’</button></div>
+      <div class="panel-head"><h3>Program Tabungan Berjalan</h3><button class="btn btn-outline btn-sm" onclick="render('program')">Lihat Semua →</button></div>
       <div class="mini-list">${ag.slice(0,5).map(g=>{ const c=STATE.customers.find(x=>x.id===g.customerId); const pct=goalProgress(g);
         return `<div class="mini-row" style="cursor:pointer;" onclick="render('program')">
-          <div style="font-size:18px;">${GOAL_CATS[g.kategori]?.emoji||'ðŸŽ¯'}</div>
-          <div class="txt"><b>${g.namaBarang}</b><span>${c?c.nama:'â€”'} â€¢ ${rupiah(g.terkumpul)} / ${rupiah(g.target)}</span>
+          <div style="font-size:18px;">${GOAL_CATS[g.kategori]?.emoji||'🎯'}</div>
+          <div class="txt"><b>${g.namaBarang}</b><span>${c?c.nama:'—'} • ${rupiah(g.terkumpul)} / ${rupiah(g.target)}</span>
           <div class="progress-track" style="height:6px; margin:6px 0 0;"><div class="progress-fill ${pct>=100?'full':''}" style="width:${pct}%"></div></div></div>
           <b style="color:var(--accent); font-size:12.5px;">${pct}%</b>
         </div>`; }).join('')}</div>
@@ -1104,7 +1104,7 @@ function statCard(lbl,val,icon,color,bg,trend){
     activity:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
     'user-plus':'<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="17" y1="11" x2="23" y2="11"/>'
   };
-  const trendHtml = trend ? `<span class="trend ${trend.up?'up':'down'}">${trend.up?'â–²':'â–¼'} ${trend.txt}</span>` : '';
+  const trendHtml = trend ? `<span class="trend ${trend.up?'up':'down'}">${trend.up?'▲':'▼'} ${trend.txt}</span>` : '';
   return `<div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:${bg}; color:${color};"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icons[icon]}</svg></div>${trendHtml}</div><div class="val">${val}</div><div class="lbl">${lbl}</div></div>`;
 }
 
@@ -1187,7 +1187,7 @@ function openAddNasabah(){
   STATE.photoBuffer = null;
   STATE.ktpFile = null;
   openModal(`
-    <div class="modal-head"><h3>Tambah Nasabah Baru</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>Tambah Nasabah Baru</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <label class="photo-upload" id="photo-upload-box">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -1236,7 +1236,7 @@ function requestSignatureAndSaveNasabah(){
   if(!nama || !hp || !alamat){ toast('Data belum lengkap','Nama, HP, dan Alamat wajib diisi.', true); return; }
 
   // Tangkap semua data form SEKARANG, karena tampilan modal akan diganti
-  // jadi layar "menunggu tanda tangan" â€” form aslinya bakal hilang dari DOM.
+  // jadi layar "menunggu tanda tangan" — form aslinya bakal hilang dari DOM.
   pendingNasabahData = {
     nama, hp, alamat,
     setoranAwal: getMoneyInput('f-saldo'),
@@ -1324,11 +1324,11 @@ async function saveNasabah(tandaTanganUrl){
   render('nasabah');
   if(setoranAwalTx){
     openModal(`
-      <div class="modal-head"><h3>âœ… Nasabah Ditambahkan</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+      <div class="modal-head"><h3>✅ Nasabah Ditambahkan</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
       <div class="modal-body">
-        <div class="sim-row big" style="margin-bottom:14px;"><div><b>${nama}</b><br><span>${c.noRekening} â€¢ Setoran awal ${rupiah(setoranAwal)}</span></div></div>
+        <div class="sim-row big" style="margin-bottom:14px;"><div><b>${nama}</b><br><span>${c.noRekening} • Setoran awal ${rupiah(setoranAwal)}</span></div></div>
       </div>
-      <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${waTombol(c.hp, `Halo ${nama}, selamat! Rekening tabungan Anda di ${STATE.settings.name} sudah aktif dengan setoran awal ${rupiah(setoranAwal)}. No. Rekening: ${c.noRekening}. Terima kasih.`)}<button class="btn btn-primary" onclick="printReceipt('${setoranAwalTx.id}')">ðŸ–¨ï¸ Cetak Struk</button></div>
+      <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${waTombol(c.hp, `Halo ${nama}, selamat! Rekening tabungan Anda di ${STATE.settings.name} sudah aktif dengan setoran awal ${rupiah(setoranAwal)}. No. Rekening: ${c.noRekening}. Terima kasih.`)}<button class="btn btn-primary" onclick="printReceipt('${setoranAwalTx.id}')">🖨️ Cetak Struk</button></div>
     `);
   } else {
     toast('Nasabah ditambahkan', `${nama} berhasil didaftarkan.`);
@@ -1398,7 +1398,7 @@ function viewDetailNasabah(id){
   const txs = STATE.transactions.filter(t=>t.customerId===id).sort((a,b)=>new Date(b.date)-new Date(a.date));
   return `
   <div class="page-head no-print">
-    <div><button class="btn btn-outline btn-sm" onclick="render('nasabah')">â† Kembali</button></div>
+    <div><button class="btn btn-outline btn-sm" onclick="render('nasabah')">← Kembali</button></div>
     <div class="toolbar">
       <button class="btn btn-outline btn-sm" onclick="openTransaksiFor('${c.id}')">Transaksi Baru</button>
       <button class="btn btn-outline btn-sm" onclick="window.print()">Cetak</button>
@@ -1425,7 +1425,7 @@ function viewDetailNasabah(id){
           <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">No. Member</span><b>${c.noMember}</b></div>
           <div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:var(--muted);">No. HP</span><span style="display:flex; align-items:center; gap:8px;"><b>${c.hp}</b>${c.hp?`<button onclick="openWhatsApp('${c.hp}', 'Halo ${c.nama}, ')" style="background:none; border:none; color:var(--green); padding:2px;" title="Kirim WA"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.51 2 12.04 2zm5.83 14.03c-.24.68-1.4 1.3-1.93 1.38-.49.08-1.11.11-1.79-.11-.41-.13-.94-.31-1.62-.6-2.85-1.23-4.71-4.1-4.85-4.29-.14-.19-1.16-1.54-1.16-2.94 0-1.4.73-2.09.99-2.38.26-.28.57-.35.76-.35.19 0 .38 0 .55.01.18.01.41-.07.64.49.24.57.81 1.98.88 2.12.07.14.12.31.02.5-.1.19-.15.31-.29.48-.14.17-.31.37-.44.5-.14.14-.3.29-.13.57.17.28.76 1.25 1.63 2.02 1.12.99 2.06 1.3 2.34 1.44.28.14.44.12.61-.07.17-.19.71-.83.9-1.11.19-.28.38-.24.63-.14.26.09 1.65.78 1.94.92.28.14.47.21.54.33.07.12.07.71-.17 1.39z"/></svg></button>`:''}</span></div>
           <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">Alamat</span><b style="text-align:right; max-width:60%;">${c.alamat}</b></div>
-          <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">No. RFID</span><b>${c.rfid||'â€”'}</b></div>
+          <div style="display:flex; justify-content:space-between;"><span style="color:var(--muted);">No. RFID</span><b>${c.rfid||'—'}</b></div>
         </div>
         <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
           <div>
@@ -1469,11 +1469,11 @@ function viewDetailNasabah(id){
         <tbody>${txs.length? txs.map(t=>`
           <tr><td>${fmtDate(t.date)}<br><span style="color:var(--muted); font-size:11px;">${fmtTime(t.date)}</span></td>
           <td><span class="pill ${t.type==='setor'?'green':t.type==='tarik'?'red':'gray'}">${t.type==='setor'?'Setor':t.type==='tarik'?'Tarik':'Koreksi'}</span></td>
-          <td style="color:var(--red);">${t.type==='tarik'?rupiah(t.amount):'â€”'}</td>
-          <td style="color:var(--green);">${t.type==='setor'?rupiah(t.amount):(t.type==='koreksi' && t.amount>=0? rupiah(t.amount):'â€”')}</td>
+          <td style="color:var(--red);">${t.type==='tarik'?rupiah(t.amount):'—'}</td>
+          <td style="color:var(--green);">${t.type==='setor'?rupiah(t.amount):(t.type==='koreksi' && t.amount>=0? rupiah(t.amount):'—')}</td>
           <td class="mono">${rupiah(t.saldoSesudah)}</td>
           <td style="color:var(--muted); font-size:12px;">${t.keterangan}</td>
-          <td class="no-print"><button class="btn btn-outline btn-sm" style="padding:6px 10px;" onclick="printReceipt('${t.id}')" title="Cetak struk">ðŸ–¨ï¸</button></td></tr>
+          <td class="no-print"><button class="btn btn-outline btn-sm" style="padding:6px 10px;" onclick="printReceipt('${t.id}')" title="Cetak struk">🖨️</button></td></tr>
         `).join('') : `<tr><td colspan="7"><div class="empty-state">Belum ada mutasi transaksi</div></td></tr>`}</tbody>
       </table></div>
     </div>
@@ -1526,11 +1526,11 @@ function txRows(list){
   if(!list.length) return `<tr><td colspan="7"><div class="empty-state">Belum ada transaksi</div></td></tr>`;
   return list.map(t=>{
     const c = STATE.customers.find(x=>x.id===t.customerId);
-    return `<tr><td>${fmtDate(t.date)} Â· ${fmtTime(t.date)}</td><td>${c?c.nama:'â€”'}</td>
+    return `<tr><td>${fmtDate(t.date)} · ${fmtTime(t.date)}</td><td>${c?c.nama:'—'}</td>
       <td><span class="pill ${t.type==='setor'?'green':t.type==='tarik'?'red':'gray'}">${t.type==='setor'?'Setor Tunai':t.type==='tarik'?'Tarik Tunai':'Koreksi'}</span></td>
       <td style="font-weight:700; color:${t.type==='setor'?'var(--green)':'var(--red)'};">${t.type==='setor'?'+':'-'}${rupiah(t.amount)}</td>
       <td>${t.staff}</td><td class="mono" style="font-size:11px; color:var(--muted);">${t.id}</td>
-      <td class="no-print"><button class="btn btn-outline btn-sm" style="padding:6px 10px;" onclick="printReceipt('${t.id}')" title="Cetak struk">ðŸ–¨ï¸</button></td></tr>`;
+      <td class="no-print"><button class="btn btn-outline btn-sm" style="padding:6px 10px;" onclick="printReceipt('${t.id}')" title="Cetak struk">🖨️</button></td></tr>`;
   }).join('');
 }
 function openTransaksiFor(customerId){ render('transaksi'); setTimeout(()=>openTxModal('setor', customerId), 50); }
@@ -1538,7 +1538,7 @@ function openTxModal(type, presetId){
   const titleMap = {setor:'Setor Tunai', tarik:'Tarik Tunai', koreksi:'Koreksi Saldo'};
   if(!STATE.customers.length){ toast('Belum ada nasabah', 'Tambahkan nasabah terlebih dahulu.', true); return; }
   openModal(`
-    <div class="modal-head"><h3>${titleMap[type]}</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>${titleMap[type]}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       ${custSearchFieldHTML('tx-customer', 'Pilih Nasabah*', STATE.customers, presetId)}
       <div class="field"><label>Nominal (Rp)*</label><input id="tx-amount" type="text" inputmode="numeric" placeholder="0" style="font-size:18px; font-weight:700;" oninput="formatMoneyInput(this)"></div>
@@ -1546,7 +1546,7 @@ function openTxModal(type, presetId){
         ${[50000,100000,200000,500000,1000000,2000000].map(v=>`<button type="button" class="amount-chip" onclick="setMoneyInput('tx-amount',${v})">${(v/1000)}k</button>`).join('')}
       </div>
       <div class="field"><label>Keterangan</label><input id="tx-note" placeholder="${type==='koreksi'?'Alasan koreksi saldo':'Opsional'}"></div>
-      <div class="login-hint">Cabang: <b>${STATE.settings.name}</b> â€¢ Staff: <b>${STATE.currentUser.name}</b> â€¢ ${fmtDate(new Date())} ${fmtTime(new Date())}</div>
+      <div class="login-hint">Cabang: <b>${STATE.settings.name}</b> • Staff: <b>${STATE.currentUser.name}</b> • ${fmtDate(new Date())} ${fmtTime(new Date())}</div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn ${type==='tarik'?'btn-red':'btn-green'}" onclick="confirmTx('${type}')">Konfirmasi ${titleMap[type]}</button></div>
   `);
@@ -1563,13 +1563,13 @@ async function confirmTx(type){
   render(STATE.view==='detail-nasabah'?'detail-nasabah':'transaksi');
   const typeLabel = type==='setor'?'Setoran':type==='tarik'?'Penarikan':'Koreksi';
   openModal(`
-    <div class="modal-head"><h3>âœ… Transaksi Berhasil</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>✅ Transaksi Berhasil</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(amount)}</b><br><span>${typeLabel} â€” ${c.nama}</span></div></div>
+      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(amount)}</b><br><span>${typeLabel} — ${c.nama}</span></div></div>
       <div class="sim-row"><span>Saldo Sekarang</span><b>${rupiah(c.saldo)}</b></div>
       <div class="sim-row"><span>No. Transaksi</span><b class="mono" style="font-size:12px;">${tx.id}</b></div>
     </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${waTombol(c.hp, `Halo ${c.nama}, ${typeLabel.toLowerCase()} sebesar ${rupiah(amount)} berhasil dicatat. Saldo Anda sekarang: ${rupiah(c.saldo)}. Terima kasih - ${STATE.settings.name}.`)}<button class="btn btn-primary" onclick="printReceipt('${tx.id}')">ðŸ–¨ï¸ Cetak Struk</button></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${waTombol(c.hp, `Halo ${c.nama}, ${typeLabel.toLowerCase()} sebesar ${rupiah(amount)} berhasil dicatat. Saldo Anda sekarang: ${rupiah(c.saldo)}. Terima kasih - ${STATE.settings.name}.`)}<button class="btn btn-primary" onclick="printReceipt('${tx.id}')">🖨️ Cetak Struk</button></div>
   `);
 }
 async function logTransaction(c, type, amount, note, extraFields){
@@ -1591,7 +1591,7 @@ async function logTransaction(c, type, amount, note, extraFields){
     console.error('logTransaction', e);
     toast('Gagal menyimpan transaksi', pesanRamah(e), true);
   }
-  addLog(`${type==='setor'?'Setor':type==='tarik'?'Tarik':'Koreksi'} ${rupiah(amount)} â€” ${c.nama} (${tx.id})`, type);
+  addLog(`${type==='setor'?'Setor':type==='tarik'?'Tarik':'Koreksi'} ${rupiah(amount)} — ${c.nama} (${tx.id})`, type);
   return tx;
 }
 
@@ -1651,17 +1651,17 @@ async function bukaLayarNasabah(){
         return;
       }
     }
-  }catch(e){ /* browser tidak dukung / izin ditolak â€” lanjut cara biasa */ }
-  toast('Info', 'Browser ini tidak bisa otomatis pindah monitor â€” geser jendelanya manual ke layar kedua ya.');
+  }catch(e){ /* browser tidak dukung / izin ditolak — lanjut cara biasa */ }
+  toast('Info', 'Browser ini tidak bisa otomatis pindah monitor — geser jendelanya manual ke layar kedua ya.');
   window.open('customer-display.html', '_blank', 'width=1000,height=700');
 }
 function mintaTandaTangan(customerId){
   const c = STATE.customers.find(x=>x.id===customerId);
   if(!c) return;
   openModal(`
-    <div class="modal-head"><h3>Minta Tanda Tangan</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>Minta Tanda Tangan</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body" id="ttd-modal-body">
-      <div class="login-hint">Pastikan <b>Layar Nasabah</b> sudah terbuka di monitor/perangkat yang menghadap ke nasabah (menu Pengaturan â†’ "Buka Layar Nasabah"), lalu klik tombol di bawah.</div>
+      <div class="login-hint">Pastikan <b>Layar Nasabah</b> sudah terbuka di monitor/perangkat yang menghadap ke nasabah (menu Pengaturan → "Buka Layar Nasabah"), lalu klik tombol di bawah.</div>
       <button class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="kirimPermintaanTtd('${c.id}')">Kirim ke Layar Nasabah</button>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="tutupModalTtd()">Batal</button></div>
@@ -1735,8 +1735,8 @@ function printReceipt(txId){
     ${receiptRow('No. Transaksi', t.id)}
     ${receiptRow('Staff', t.staff)}
     <div class="line"></div>
-    ${receiptRow('Nasabah', c?c.nama:'â€”', true)}
-    ${receiptRow('No. Rekening', c?c.noRekening:'â€”')}
+    ${receiptRow('Nasabah', c?c.nama:'—', true)}
+    ${receiptRow('No. Rekening', c?c.noRekening:'—')}
     <div class="line"></div>
     <div class="center muted">Nominal</div>
     <div class="center big">${sign}${rupiah(t.amount)}</div>
@@ -1761,8 +1761,8 @@ function printProgramReceipt(goalId){
     ${receiptRow('No. Program', g.id)}
     ${receiptRow('Staff', STATE.currentUser.name)}
     <div class="line"></div>
-    ${receiptRow('Nasabah', c?c.nama:'â€”', true)}
-    ${receiptRow('No. Rekening', c?c.noRekening:'â€”')}
+    ${receiptRow('Nasabah', c?c.nama:'—', true)}
+    ${receiptRow('No. Rekening', c?c.noRekening:'—')}
     <div class="line"></div>
     ${receiptRow('Target Barang', g.namaBarang)}
     ${receiptRow('Harga Target', rupiah(g.target))}
@@ -1777,7 +1777,7 @@ function printProgramReceipt(goalId){
   openReceiptPrint('Struk Program '+g.id, body);
 }
 function viewBuku(){
-  const custOptions = STATE.customers.map(c=>`<option value="${c.id}">${c.nama} â€” ${c.noRekening}</option>`).join('');
+  const custOptions = STATE.customers.map(c=>`<option value="${c.id}">${c.nama} — ${c.noRekening}</option>`).join('');
   return `
   <div class="page-head no-print">
     <div><h2>Buku Tabungan Digital</h2><p>Riwayat mutasi seluruh nasabah</p></div>
@@ -1801,10 +1801,10 @@ function bukuRows(list){
   if(!list.length) return `<tr><td colspan="8"><div class="empty-state">Belum ada transaksi tercatat</div></td></tr>`;
   return list.map(t=>{
     const c = STATE.customers.find(x=>x.id===t.customerId);
-    return `<tr><td>${fmtDate(t.date)}</td><td>${fmtTime(t.date)}</td><td>${c?c.nama:'â€”'}</td>
+    return `<tr><td>${fmtDate(t.date)}</td><td>${fmtTime(t.date)}</td><td>${c?c.nama:'—'}</td>
       <td><span class="pill ${t.type==='setor'?'green':t.type==='tarik'?'red':'gray'}">${t.type==='setor'?'Setor':t.type==='tarik'?'Tarik':'Koreksi'}</span></td>
-      <td style="color:var(--red);">${t.type==='tarik'?rupiah(t.amount):'â€”'}</td>
-      <td style="color:var(--green);">${t.type==='setor'?rupiah(t.amount):'â€”'}</td>
+      <td style="color:var(--red);">${t.type==='tarik'?rupiah(t.amount):'—'}</td>
+      <td style="color:var(--green);">${t.type==='setor'?rupiah(t.amount):'—'}</td>
       <td class="mono">${rupiah(t.saldoSesudah)}</td><td style="color:var(--muted); font-size:12px;">${t.keterangan}</td></tr>`;
   }).join('');
 }
@@ -1827,7 +1827,7 @@ function exportAllCSV(){
 /* ============================= KARTU MEMBER ============================= */
 function viewKartu(){
   const c = STATE.detailCustomerId ? STATE.customers.find(x=>x.id===STATE.detailCustomerId) : STATE.customers[0];
-  const custOptions = STATE.customers.map(x=>`<option value="${x.id}" ${c&&c.id===x.id?'selected':''}>${x.nama} â€” ${x.noRekening}</option>`).join('');
+  const custOptions = STATE.customers.map(x=>`<option value="${x.id}" ${c&&c.id===x.id?'selected':''}>${x.nama} — ${x.noRekening}</option>`).join('');
   return `
   <div class="page-head no-print">
     <div><h2>Kartu Member</h2><p>Cetak kartu nasabah lengkap dengan QR Code</p></div>
@@ -1844,7 +1844,7 @@ function viewKartu(){
       <div class="mc-num">${c.noRekening}</div>
       <div class="mc-bottom">
         <div><div class="mc-name">${c.nama}</div><div class="mc-since">Member sejak ${fmtDate(c.tglDaftar)}</div></div>
-        <div style="text-align:right; font-size:9.5px; color:rgba(255,255,255,.6);">RFID<br><b style="color:#fff; font-size:11px;">${c.rfid||'â€”'}</b></div>
+        <div style="text-align:right; font-size:9.5px; color:rgba(255,255,255,.6);">RFID<br><b style="color:#fff; font-size:11px;">${c.rfid||'—'}</b></div>
       </div>
     </div>
     <button class="btn btn-primary btn-sm no-print" onclick="window.print()">Cetak Kartu</button>
@@ -1860,10 +1860,10 @@ function renderQRIfNeeded(){
 
 /* ============================= PROGRAM TABUNGAN (GOALS) ============================= */
 const GOAL_CATS = {
-  hp:     { label:'Handphone', emoji:'ðŸ“±' },
-  tv:     { label:'Televisi',  emoji:'ðŸ“º' },
-  laptop: { label:'Laptop',    emoji:'ðŸ’»' },
-  lain:   { label:'Lainnya',   emoji:'ðŸŽ¯' },
+  hp:     { label:'Handphone', emoji:'📱' },
+  tv:     { label:'Televisi',  emoji:'📺' },
+  laptop: { label:'Laptop',    emoji:'💻' },
+  lain:   { label:'Lainnya',   emoji:'🎯' },
 };
 /* ============================= VERIFIKASI PIN KEPALA TOKO/ADMIN (approval instan) ============================= */
 function canApprove(user){
@@ -1871,7 +1871,7 @@ function canApprove(user){
 }
 function mintaPinApproval(onSukses){
   openModal(`
-    <div class="modal-head"><h3>ðŸ”’ Persetujuan Kepala Toko</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>🔒 Persetujuan Kepala Toko</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="login-hint" style="margin-top:0;">Setoran program ini perlu disetujui langsung oleh Admin atau Kepala Toko. Minta beliau memasukkan PIN persetujuannya di sini.</div>
       <div class="field" style="margin-top:14px;"><label>PIN Kepala Toko/Admin</label><input id="approval-pin" type="password" inputmode="numeric" placeholder="Masukkan PIN" style="font-size:20px; font-weight:700; letter-spacing:4px; text-align:center;" maxlength="8"></div>
@@ -1966,13 +1966,13 @@ function goalCard(g){
       <div class="goal-icon ${g.kategori}">${cat.emoji}</div>
       <div style="flex:1; min-width:0;">
         <b>${g.namaBarang}</b>
-        <span>${c ? c.nama : 'â€”'} â€¢ Mulai ${fmtDate(g.mulai)}</span>
+        <span>${c ? c.nama : '—'} • Mulai ${fmtDate(g.mulai)}</span>
       </div>
       <span class="pill ${isDone?'green':'gray'}">${isDone?'Tercapai':`${g.tenorBulan} bulan`}</span>
     </div>
     <div class="goal-nums"><span style="color:var(--muted);">Terkumpul</span><b>${rupiah(g.terkumpul)} <span style="color:var(--muted); font-weight:500;">/ ${rupiah(g.target)}</span></b></div>
     <div class="progress-track"><div class="progress-fill ${pct>=100?'full':''}" style="width:${pct}%"></div></div>
-    <div class="goal-nums" style="margin-bottom:14px;"><span style="color:${pct>=100?'var(--green)':'var(--accent)'}; font-weight:700;">${pct}%</span><span style="color:var(--muted);">${isDone?'Program selesai ðŸŽ‰':`Sisa ${rupiah(sisa)} â€¢ Â±${sisaHari} hari lagi`}</span></div>
+    <div class="goal-nums" style="margin-bottom:14px;"><span style="color:${pct>=100?'var(--green)':'var(--accent)'}; font-weight:700;">${pct}%</span><span style="color:var(--muted);">${isDone?'Program selesai 🎉':`Sisa ${rupiah(sisa)} • ±${sisaHari} hari lagi`}</span></div>
     <div class="scheme-grid">
       <div class="scheme-box"><small>Per Hari</small><b>${rupiah(s.perHari)}</b></div>
       <div class="scheme-box hl"><small>Per Minggu</small><b>${rupiah(s.perMinggu)}</b></div>
@@ -1990,7 +1990,7 @@ function goalCard(g){
 /* ---------- Simulasi cepat (tanpa menyimpan) ---------- */
 function openSimulasi(){
   openModal(`
-    <div class="modal-head"><h3>Simulasi Skema Menabung</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>Simulasi Skema Menabung</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="field"><label>Harga Barang (Rp)</label><input id="sim-harga" type="text" inputmode="numeric" placeholder="Contoh: 3.000.000" oninput="formatMoneyInput(this); renderSim()" style="font-size:17px; font-weight:700;"></div>
       <div class="amount-grid">
@@ -2003,7 +2003,7 @@ function openSimulasi(){
       </div>
       <div id="sim-result"></div>
     </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="closeModal(); openAddGoal();">Buat Jadi Program â†’</button></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button><button class="btn btn-primary" onclick="closeModal(); openAddGoal();">Buat Jadi Program →</button></div>
   `);
   renderSim();
 }
@@ -2013,11 +2013,11 @@ function schemeHTML(price, months, judul){
   return `
   <div class="sim-panel">
     <h4><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>${judul || 'Skema Setoran Otomatis'}</h4>
-    <div class="sim-row big"><div><b>${rupiah(s.perHari)}</b><br><span>Setoran per hari</span></div><span>Ã— ${s.totalDays} hari</span></div>
-    <div class="sim-row big"><div><b>${rupiah(s.perMinggu)}</b><br><span>Setoran per minggu</span></div><span>Ã— ${s.totalWeeks} minggu</span></div>
-    <div class="sim-row big"><div><b>${rupiah(s.perBulan)}</b><br><span>Setoran per bulan</span></div><span>Ã— ${months} bulan</span></div>
+    <div class="sim-row big"><div><b>${rupiah(s.perHari)}</b><br><span>Setoran per hari</span></div><span>× ${s.totalDays} hari</span></div>
+    <div class="sim-row big"><div><b>${rupiah(s.perMinggu)}</b><br><span>Setoran per minggu</span></div><span>× ${s.totalWeeks} minggu</span></div>
+    <div class="sim-row big"><div><b>${rupiah(s.perBulan)}</b><br><span>Setoran per bulan</span></div><span>× ${months} bulan</span></div>
     <div class="sim-row"><span>Target tercapai dalam</span><b>${months} bulan</b></div>
-    <div class="sim-row"><span>Nominal dibulatkan ke atas (kelipatan Rp 500)</span><b style="color:var(--green);">âœ“ Pasti cukup</b></div>
+    <div class="sim-row"><span>Nominal dibulatkan ke atas (kelipatan Rp 500)</span><b style="color:var(--green);">✓ Pasti cukup</b></div>
   </div>`;
 }
 function renderSim(){
@@ -2033,7 +2033,7 @@ function openAddGoal(){
   goalCatBuffer = 'hp';
   const options = STATE.customers.filter(c=>c.status==='Aktif');
   openModal(`
-    <div class="modal-head"><h3>Buat Program Tabungan</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>Buat Program Tabungan</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       ${custSearchFieldHTML('g-customer', 'Nasabah*', options)}
       <div class="field"><label>Kategori Barang*</label>
@@ -2093,17 +2093,17 @@ async function saveGoal(){
   if(awal>0){
     awalTx = await setorKeGoal(g, awal);
   }
-  addLog(`Program tabungan dibuat: ${namaBarang} (${rupiah(target)}, ${tenorBulan} bln) â€” ${c.nama}`, 'baru');
+  addLog(`Program tabungan dibuat: ${namaBarang} (${rupiah(target)}, ${tenorBulan} bln) — ${c.nama}`, 'baru');
   closeModal();
   render('program');
   openModal(`
-    <div class="modal-head"><h3>âœ… Program Dibuat</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>✅ Program Dibuat</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${namaBarang}</b><br><span>${c.nama} â€” target ${rupiah(target)}${awal>0?` (setoran awal ${rupiah(awal)})`:''}</span></div></div>
+      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${namaBarang}</b><br><span>${c.nama} — target ${rupiah(target)}${awal>0?` (setoran awal ${rupiah(awal)})`:''}</span></div></div>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${waTombol(c.hp, `Halo ${c.nama}, program tabungan "${namaBarang}" (target ${rupiah(target)}) sudah aktif untuk Anda di ${STATE.settings.name}.${awal>0?` Setoran awal ${rupiah(awal)} sudah tercatat.`:''} Terima kasih.`)}${awalTx
-      ? `<button class="btn btn-primary" onclick="printReceipt('${awalTx.id}')">ðŸ–¨ï¸ Cetak Struk</button>`
-      : `<button class="btn btn-primary" onclick="printProgramReceipt('${g.id}')">ðŸ–¨ï¸ Cetak Struk</button>`}</div>
+      ? `<button class="btn btn-primary" onclick="printReceipt('${awalTx.id}')">🖨️ Cetak Struk</button>`
+      : `<button class="btn btn-primary" onclick="printProgramReceipt('${g.id}')">🖨️ Cetak Struk</button>`}</div>
   `);
 }
 
@@ -2115,11 +2115,11 @@ function openSetorGoal(goalId){
   const s = goalScheme(g.target, g.tenorBulan);
   const sisa = Math.max(0, g.target - g.terkumpul);
   openModal(`
-    <div class="modal-head"><h3>Setor ke Program</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>Setor ke Program</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="login-hint" style="margin-top:0; margin-bottom:14px;">
-        <b>${g.namaBarang}</b> â€” ${c?c.nama:'â€”'}<br>
-        Terkumpul <b>${rupiah(g.terkumpul)}</b> dari target <b>${rupiah(g.target)}</b> â€¢ Sisa <b style="color:var(--accent);">${rupiah(sisa)}</b>
+        <b>${g.namaBarang}</b> — ${c?c.nama:'—'}<br>
+        Terkumpul <b>${rupiah(g.terkumpul)}</b> dari target <b>${rupiah(g.target)}</b> • Sisa <b style="color:var(--accent);">${rupiah(sisa)}</b>
       </div>
       <div class="field"><label>Nominal Setoran (Rp)*</label><input id="gs-amount" type="text" inputmode="numeric" placeholder="0" style="font-size:18px; font-weight:700;" oninput="formatMoneyInput(this)"></div>
       <div class="amount-grid">
@@ -2128,7 +2128,7 @@ function openSetorGoal(goalId){
         <button type="button" class="amount-chip" onclick="setMoneyInput('gs-amount',${s.perBulan})">Bulanan<br><b>${rupiah(s.perBulan)}</b></button>
       </div>
       <div class="amount-grid" style="grid-template-columns:1fr;">
-        <button type="button" class="amount-chip" onclick="setMoneyInput('gs-amount',${sisa})">Lunasi Sisa â€” <b>${rupiah(sisa)}</b></button>
+        <button type="button" class="amount-chip" onclick="setMoneyInput('gs-amount',${sisa})">Lunasi Sisa — <b>${rupiah(sisa)}</b></button>
       </div>
       <div class="login-hint">Setoran ini otomatis tercatat sebagai <b>Setor Tunai</b> di rekening nasabah dan menambah progres program.</div>
     </div>
@@ -2154,18 +2154,18 @@ async function confirmSetorGoal(goalId){
 async function prosesSetorGoalSetelahApproval(g, amount, approver){
   const c = STATE.customers.find(x=>x.id===g.customerId);
   const tx = await setorKeGoal(g, amount);
-  if(approver) addLog(`Setoran program disetujui via PIN oleh ${approver.name} (${approver.role}): ${rupiah(amount)} â€” ${c?c.nama:''} (${g.namaBarang})`, 'setor');
+  if(approver) addLog(`Setoran program disetujui via PIN oleh ${approver.name} (${approver.role}): ${rupiah(amount)} — ${c?c.nama:''} (${g.namaBarang})`, 'setor');
   const done = g.status==='selesai';
   closeModal();
   render('program');
   openModal(`
-    <div class="modal-head"><h3>${done?'ðŸŽ‰ Target Tercapai!':'âœ… Setoran Berhasil'}</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>${done?'🎉 Target Tercapai!':'✅ Setoran Berhasil'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
-      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(amount)}</b><br><span>${g.namaBarang} â€” ${c?c.nama:''}</span></div></div>
+      <div class="sim-row big" style="margin-bottom:14px;"><div><b>${rupiah(amount)}</b><br><span>${g.namaBarang} — ${c?c.nama:''}</span></div></div>
       ${approver ? `<div class="login-hint">Disetujui oleh <b>${approver.name}</b> (${approver.role})</div>` : ''}
-      ${done ? `<div class="login-hint">Program sudah mencapai target ${rupiah(g.target)} ðŸŽ‰</div>` : ''}
+      ${done ? `<div class="login-hint">Program sudah mencapai target ${rupiah(g.target)} 🎉</div>` : ''}
     </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${c?waTombol(c.hp, done ? `Selamat ${c.nama}! Program tabungan "${g.namaBarang}" Anda sudah mencapai target ${rupiah(g.target)}. Silakan hubungi kami untuk proses selanjutnya. Terima kasih - ${STATE.settings.name}.` : `Halo ${c.nama}, setoran ${rupiah(amount)} untuk program "${g.namaBarang}" berhasil dicatat. Terkumpul: ${rupiah(g.terkumpul)} / ${rupiah(g.target)}. Terima kasih.`):''}${tx?`<button class="btn btn-primary" onclick="printReceipt('${tx.id}')">ðŸ–¨ï¸ Cetak Struk</button>`:''}</div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Tutup</button>${c?waTombol(c.hp, done ? `Selamat ${c.nama}! Program tabungan "${g.namaBarang}" Anda sudah mencapai target ${rupiah(g.target)}. Silakan hubungi kami untuk proses selanjutnya. Terima kasih - ${STATE.settings.name}.` : `Halo ${c.nama}, setoran ${rupiah(amount)} untuk program "${g.namaBarang}" berhasil dicatat. Terkumpul: ${rupiah(g.terkumpul)} / ${rupiah(g.target)}. Terima kasih.`):''}${tx?`<button class="btn btn-primary" onclick="printReceipt('${tx.id}')">🖨️ Cetak Struk</button>`:''}</div>
   `);
 }
 async function setorKeGoal(g, amount){
@@ -2176,7 +2176,7 @@ async function setorKeGoal(g, amount){
   if(g.terkumpul >= g.target && g.status!=='selesai'){
     g.status = 'selesai';
     g.selesaiPada = new Date().toISOString();
-    addLog(`Program tabungan TERCAPAI: ${g.namaBarang} â€” ${c.nama} (${rupiah(g.target)})`, 'baru');
+    addLog(`Program tabungan TERCAPAI: ${g.namaBarang} — ${c.nama} (${rupiah(g.target)})`, 'baru');
   }
   await fbSaveOne('goals', g);
   return tx;
@@ -2193,22 +2193,22 @@ function openDetailGoal(goalId){
   const sisaScheme = sisa>0 && sisaHari>0 ? goalScheme(sisa, Math.max(0.25, sisaHari/30)) : null;
   const txProgram = STATE.transactions.filter(t=>t.customerId===g.customerId && t.keterangan===`Program: ${g.namaBarang}`).sort((a,b)=>new Date(b.date)-new Date(a.date));
   openModal(`
-    <div class="modal-head"><h3>${GOAL_CATS[g.kategori]?.emoji||'ðŸŽ¯'} ${g.namaBarang}</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>${GOAL_CATS[g.kategori]?.emoji||'🎯'} ${g.namaBarang}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="sim-panel" style="margin-bottom:14px;">
         <h4>Ringkasan Program</h4>
-        <div class="sim-row"><span>Nasabah</span><b>${c?c.nama:'â€”'}</b></div>
+        <div class="sim-row"><span>Nasabah</span><b>${c?c.nama:'—'}</b></div>
         <div class="sim-row"><span>Target</span><b>${rupiah(g.target)}</b></div>
         <div class="sim-row"><span>Terkumpul</span><b style="color:var(--green);">${rupiah(g.terkumpul)} (${goalProgress(g)}%)</b></div>
         <div class="sim-row"><span>Sisa</span><b style="color:var(--accent);">${rupiah(sisa)}</b></div>
         <div class="sim-row"><span>Mulai</span><b>${fmtDate(g.mulai)}</b></div>
-        <div class="sim-row"><span>Jatuh tempo (Â±)</span><b>${fmtDate(goalDeadline(g))} â€¢ sisa ${sisaHari} hari</b></div>
+        <div class="sim-row"><span>Jatuh tempo (±)</span><b>${fmtDate(goalDeadline(g))} • sisa ${sisaHari} hari</b></div>
       </div>
       <div class="sim-panel" style="margin-bottom:14px;">
         <h4>Skema Setoran Awal Program</h4>
-        <div class="sim-row"><span>Per hari (Ã— ${s.totalDays} hari)</span><b>${rupiah(s.perHari)}</b></div>
-        <div class="sim-row"><span>Per minggu (Ã— ${s.totalWeeks} minggu)</span><b>${rupiah(s.perMinggu)}</b></div>
-        <div class="sim-row"><span>Per bulan (Ã— ${g.tenorBulan} bulan)</span><b>${rupiah(s.perBulan)}</b></div>
+        <div class="sim-row"><span>Per hari (× ${s.totalDays} hari)</span><b>${rupiah(s.perHari)}</b></div>
+        <div class="sim-row"><span>Per minggu (× ${s.totalWeeks} minggu)</span><b>${rupiah(s.perMinggu)}</b></div>
+        <div class="sim-row"><span>Per bulan (× ${g.tenorBulan} bulan)</span><b>${rupiah(s.perBulan)}</b></div>
       </div>
       ${sisaScheme ? `
       <div class="sim-panel" style="margin-bottom:14px; border-color:var(--gold);">
@@ -2218,7 +2218,7 @@ function openDetailGoal(goalId){
       </div>` : ''}
       <div class="panel-head" style="margin-bottom:8px;"><h3 style="font-size:13px;">Riwayat Setoran Program (${txProgram.length})</h3></div>
       <div class="mini-list" style="max-height:180px; overflow-y:auto;">
-        ${txProgram.length ? txProgram.map(t=>`<div class="mini-row"><div class="dot" style="background:var(--green);"></div><div class="txt"><b>+${rupiah(t.amount)}</b><span>${fmtDate(t.date)} ${fmtTime(t.date)} â€¢ ${t.staff}</span></div></div>`).join('') : '<div class="empty-state" style="padding:14px;">Belum ada setoran</div>'}
+        ${txProgram.length ? txProgram.map(t=>`<div class="mini-row"><div class="dot" style="background:var(--green);"></div><div class="txt"><b>+${rupiah(t.amount)}</b><span>${fmtDate(t.date)} ${fmtTime(t.date)} • ${t.staff}</span></div></div>`).join('') : '<div class="empty-state" style="padding:14px;">Belum ada setoran</div>'}
       </div>
     </div>
     <div class="modal-foot">
@@ -2231,10 +2231,10 @@ async function deleteGoal(goalId){
   const g = STATE.goals.find(x=>x.id===goalId);
   if(!g) return;
   const c = STATE.customers.find(x=>x.id===g.customerId);
-  if(!confirm(`Hapus program "${g.namaBarang}"?\n\nCatatan: saldo & transaksi setoran nasabah TIDAK ikut terhapus â€” hanya program targetnya saja.`)) return;
+  if(!confirm(`Hapus program "${g.namaBarang}"?\n\nCatatan: saldo & transaksi setoran nasabah TIDAK ikut terhapus — hanya program targetnya saja.`)) return;
   STATE.goals = STATE.goals.filter(x=>x.id!==goalId);
   await fbDeleteOne('goals', goalId);
-  addLog(`Program tabungan dihapus: ${g.namaBarang} â€” ${c?c.nama:''}`, 'info');
+  addLog(`Program tabungan dihapus: ${g.namaBarang} — ${c?c.nama:''}`, 'info');
   toast('Program dihapus', `"${g.namaBarang}" sudah dihapus dari daftar program.`);
   closeModal();
   render('program');
@@ -2293,7 +2293,7 @@ function viewAktivitas(){
   <div class="panel">
     <div class="mini-list">${STATE.logs.length? STATE.logs.map(l=>`
       <div class="mini-row"><div class="dot" style="background:${l.type==='setor'?'var(--green)':l.type==='tarik'?'var(--red)':l.type==='login'?'var(--accent)':'var(--gold)'}"></div>
-      <div class="txt"><b>${l.text}</b><span>${l.user} â€¢ ${fmtDate(l.time)} ${fmtTime(l.time)}</span></div></div>`).join('') : '<div class="empty-state">Belum ada aktivitas</div>'}</div>
+      <div class="txt"><b>${l.text}</b><span>${l.user} • ${fmtDate(l.time)} ${fmtTime(l.time)}</span></div></div>`).join('') : '<div class="empty-state">Belum ada aktivitas</div>'}</div>
   </div>`;
 }
 
@@ -2332,7 +2332,7 @@ function viewPengaturan(){
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Banner
           </button>
         </div>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Gambar promo yang tampil bergantian otomatis di halaman utama app Nasabah. Ukuran disarankan rasio lebar (mis. 800Ã—400px), maks 2MB.</p>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Gambar promo yang tampil bergantian otomatis di halaman utama app Nasabah. Ukuran disarankan rasio lebar (mis. 800×400px), maks 2MB.</p>
         <div id="banner-upload-status"></div>
         <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px;">
           ${STATE.banners.length ? STATE.banners.map(bannerCard).join('') : '<div class="empty-state" style="grid-column:1/-1;">Belum ada banner. Klik "Tambah Banner" untuk upload gambar pertama.</div>'}
@@ -2365,8 +2365,8 @@ function viewPengaturan(){
         <div class="panel-head"><h3>Cadangan Data</h3></div>
         <p style="font-size:12.5px; color:var(--muted); margin-bottom:14px;">Unduh seluruh data nasabah &amp; transaksi sebagai cadangan, atau pulihkan dari file cadangan.</p>
         <div class="toolbar">
-          <button class="btn btn-outline btn-sm" onclick="backupData()">â¬‡ Backup (JSON)</button>
-          <label class="btn btn-outline btn-sm" style="position:relative;">â¬† Restore
+          <button class="btn btn-outline btn-sm" onclick="backupData()">⬇ Backup (JSON)</button>
+          <label class="btn btn-outline btn-sm" style="position:relative;">⬆ Restore
             <input type="file" accept="application/json" style="position:absolute; inset:0; opacity:0; cursor:pointer;" onchange="restoreData(event)">
           </label>
         </div>
@@ -2390,7 +2390,7 @@ function userRows(){
 }
 function openAddUser(){
   openModal(`
-    <div class="modal-head"><h3>Tambah Staff</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>Tambah Staff</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="field"><label>Nama Lengkap</label><input id="u-name" placeholder="Nama staff"></div>
       <div class="field"><label>Username</label><input id="u-username" placeholder="username login"></div>
@@ -2433,13 +2433,13 @@ function openEditUser(id){
   if(!u) return;
   const isSelf = u.id===STATE.currentUser.id;
   openModal(`
-    <div class="modal-head"><h3>Edit Staff</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>Edit Staff</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="field"><label>Nama Lengkap</label><input id="u-name" value="${u.name}"></div>
       <div class="field"><label>Username</label><input id="u-username" value="${u.username}"></div>
       <div class="field"><label>Role</label><select id="u-role" onchange="document.getElementById('u-pin-wrap').style.display = this.value==='Staff' ? 'none' : 'block';"><option ${u.role==='Staff'?'selected':''}>Staff</option><option ${u.role==='Kepala Toko'?'selected':''}>Kepala Toko</option><option ${u.role==='Admin'?'selected':''}>Admin</option></select></div>
       <div class="field" id="u-pin-wrap" style="display:${u.role==='Staff'?'none':'block'};"><label>PIN Persetujuan (4-8 digit)</label><input id="u-pin" type="text" inputmode="numeric" value="${u.approvalPin||''}" placeholder="Dipakai untuk menyetujui setoran program staff" maxlength="8"></div>
-      ${isSelf ? `<div class="field"><label>Password Baru (opsional, untuk akun saya sendiri)</label><input id="u-password" type="text" placeholder="Kosongkan jika tidak diubah"></div>` : `<div class="login-hint">Untuk mereset password staff lain, gunakan Firebase Console â†’ Authentication â†’ Users â†’ pilih akun â†’ Reset Password. Ini demi keamanan, hanya pemilik akun yang bisa mengganti passwordnya sendiri lewat aplikasi.</div>`}
+      ${isSelf ? `<div class="field"><label>Password Baru (opsional, untuk akun saya sendiri)</label><input id="u-password" type="text" placeholder="Kosongkan jika tidak diubah"></div>` : `<div class="login-hint">Untuk mereset password staff lain, gunakan Firebase Console → Authentication → Users → pilih akun → Reset Password. Ini demi keamanan, hanya pemilik akun yang bisa mengganti passwordnya sendiri lewat aplikasi.</div>`}
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="updateUser('${u.id}')">Simpan Perubahan</button></div>
   `);
@@ -2482,7 +2482,7 @@ async function deleteUser(id){
   if(!u) return;
   if(u.id===STATE.currentUser.id){ toast('Tidak bisa dihapus', 'Anda tidak bisa menghapus akun sendiri saat sedang login.', true); return; }
   if(u.role==='Admin' && STATE.users.filter(x=>x.role==='Admin').length<=1){ toast('Tidak bisa dihapus', 'Minimal harus ada 1 akun Admin.', true); return; }
-  if(!confirm(`Hapus akun staff "${u.name}"? Akun ini tidak akan bisa login lagi.\n\n(Catatan: akun otentikasinya bisa dihapus permanen lewat Firebase Console â†’ Authentication â†’ Users bila diperlukan.)`)) return;
+  if(!confirm(`Hapus akun staff "${u.name}"? Akun ini tidak akan bisa login lagi.\n\n(Catatan: akun otentikasinya bisa dihapus permanen lewat Firebase Console → Authentication → Users bila diperlukan.)`)) return;
   try{
     await db.collection('profiles').doc(id).delete();
     STATE.users = await fbLoadProfiles();
@@ -2503,19 +2503,19 @@ function bannerCard(b){
         <button class="btn btn-outline btn-sm" style="padding:4px 8px; color:var(--red); border-color:var(--red);" onclick="deleteBanner('${b.id}')">Hapus</button>
       </div>
       <div style="display:flex; gap:6px;">
-        <button class="btn btn-outline btn-sm" style="flex:1; padding:4px;" onclick="moveBanner('${b.id}',-1)">â†‘ Naik</button>
-        <button class="btn btn-outline btn-sm" style="flex:1; padding:4px;" onclick="moveBanner('${b.id}',1)">â†“ Turun</button>
+        <button class="btn btn-outline btn-sm" style="flex:1; padding:4px;" onclick="moveBanner('${b.id}',-1)">↑ Naik</button>
+        <button class="btn btn-outline btn-sm" style="flex:1; padding:4px;" onclick="moveBanner('${b.id}',1)">↓ Turun</button>
       </div>
     </div>
   </div>`;
 }
 function openAddBanner(){
   openModal(`
-    <div class="modal-head"><h3>Tambah Banner Promo</h3><button class="modal-close" onclick="closeModal()">âœ•</button></div>
+    <div class="modal-head"><h3>Tambah Banner Promo</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="modal-body">
       <div class="field"><label>Keterangan (tampil saat nasabah klik gambar)</label><input id="bn-desc" placeholder="Contoh: TV 43 inch tebus murah cuma Rp 2.100.000, harga pasaran Rp 3.500.000"></div>
       <div class="field"><label>Gambar Banner*</label><input id="bn-file" type="file" accept="image/*"></div>
-      <p style="font-size:12px; color:var(--muted); margin:6px 0 0;">Ukuran disarankan rasio lebar (mis. 800Ã—400px), maks 2MB.</p>
+      <p style="font-size:12px; color:var(--muted); margin:6px 0 0;">Ukuran disarankan rasio lebar (mis. 800×400px), maks 2MB.</p>
     </div>
     <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" id="btn-save-banner" onclick="uploadBanner()">Simpan Banner</button></div>
   `);
