@@ -1858,7 +1858,10 @@ function renderQRIfNeeded(){
   }
 }
 function getNasabahUrl(){
-  return location.href.replace(/index\.html(\?.*)?(#.*)?$/, 'nasabah.html');
+  let base = location.href.split('?')[0].split('#')[0];
+  if(/index\.html$/i.test(base)) return base.replace(/index\.html$/i, 'nasabah.html');
+  if(base.endsWith('/')) return base + 'nasabah.html';
+  return base.replace(/[^/]*$/, '') + 'nasabah.html';
 }
 function renderQrNasabahIfNeeded(){
   const box = document.getElementById('qr-nasabah-box');
