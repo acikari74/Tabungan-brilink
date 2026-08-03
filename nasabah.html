@@ -20,11 +20,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 <style>
   :root{
-    --primary:#F3A616; --primary-hover:#D6900E; --secondary:#0A1D3C; --secondary-light:#163666;
-    --bg:#F5F6FA; --surface:#FFFFFF; --success:#3B6D11; --success-bg:#EAF3DE; --danger:#993C1D; --danger-bg:#FAECE7;
-    --text-main:#0A1D3C; --text-muted:#8A8F9C; --border:#EEF0F4;
-    --icon-box-1:#FFF4E0; --icon-box-2:#E9EDF5;
-    --login-bg-1:#0A0A0F; --login-bg-2:#0A1D3C; --login-glow:#F3A616;
+    --primary:#FFD700; --primary-hover:#B8860B; --secondary:#4169E1; --secondary-light:#5B7FE8;
+    --bg:#F5F6FA; --surface:#FFFFFF; --success:#4169E1; --success-bg:#E8EDFB; --danger:#FF0000; --danger-bg:#FFE5E5;
+    --text-main:#1a1a1a; --text-muted:#8A8F9C; --border:#EEF0F4;
+    --icon-box-1:#FFF6D6; --icon-box-2:#E8EDFB;
   }
   *{box-sizing:border-box;}
   body{margin:0; font-family:'DM Sans',sans-serif; background:#EEF1F6; color:var(--text-main); -webkit-tap-highlight-color:transparent; perspective:1200px;}
@@ -80,38 +79,29 @@
   <!-- BOOT -->
   <div id="screen-boot" style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;">
     <div style="width:56px; height:56px; border-radius:18px; background:var(--secondary); display:flex; align-items:center; justify-content:center;">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F3A616" stroke-width="2.2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.2"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>
     </div>
     <div style="color:var(--text-muted); font-size:13px;" id="boot-msg">Memuat…</div>
   </div>
 
   <!-- LOGIN -->
-  <div id="screen-login" class="hidden fade-in" style="min-height:100vh; display:flex; flex-direction:column; background:linear-gradient(180deg,var(--login-bg-1),var(--login-bg-2) 75%); position:relative; overflow:hidden;">
-    <div style="position:absolute; top:90px; left:50%; transform:translateX(-50%); width:280px; height:280px; background:radial-gradient(circle,var(--login-glow) 0%, transparent 68%); opacity:.32; filter:blur(10px); pointer-events:none;"></div>
-    <div style="position:relative; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:36px 24px 8px; text-align:center;">
-      <div style="position:relative; width:100%; max-width:220px; height:150px; display:flex; align-items:center; justify-content:center; margin-bottom:16px;">
-        <div style="position:absolute; bottom:-6px; left:50%; transform:translateX(-50%); width:140px; height:50px; background:radial-gradient(ellipse,var(--login-glow) 0%, transparent 72%); opacity:.55; filter:blur(6px);"></div>
-        <div style="position:absolute; top:2px; left:0; background:rgba(20,22,30,.85); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:7px 9px; display:flex; align-items:center; gap:6px; backdrop-filter:blur(6px); z-index:4;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F3A616" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>
-          <div style="text-align:left;"><div style="font-size:8px; color:rgba(255,255,255,.5);">Aman</div><div style="font-size:11px; font-weight:700; color:#fff;">100%</div></div>
-        </div>
-        <div style="position:relative; width:168px; height:104px; border-radius:14px; background:linear-gradient(150deg,#1c2b45,var(--secondary) 60%); border:1px solid rgba(243,166,22,.35); padding:14px; box-shadow:0 20px 40px -12px rgba(243,166,22,.25); z-index:3;">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <span style="font-size:10px; font-weight:800; font-style:italic; color:#fff;">PASTI <span style="color:#F3A616;">PUNYA</span></span>
-            <div style="width:22px; height:16px; border-radius:4px; background:linear-gradient(135deg,#F3A616,var(--primary-hover));"></div>
-          </div>
-          <div style="font-size:11px; letter-spacing:2px; color:rgba(255,255,255,.85); margin-top:20px; font-family:monospace;">•••• •••• ••••</div>
-          <div style="margin-top:10px;"><div style="font-size:7px; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:1px;">Nasabah</div><div style="font-size:9.5px; color:#fff; margin-top:2px;">Tabungan Anda</div></div>
-        </div>
-        <div style="position:absolute; bottom:2px; right:0; background:rgba(20,22,30,.85); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:7px 9px; display:flex; align-items:center; gap:6px; backdrop-filter:blur(6px); z-index:4;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F3A616" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-          <div style="text-align:left;"><div style="font-size:8px; color:rgba(255,255,255,.5);">Tumbuh</div><div style="font-size:10px; font-weight:700; color:#fff;">Tiap Hari</div></div>
-        </div>
+  <div id="screen-login" class="hidden fade-in" style="min-height:100vh; display:flex; flex-direction:column; background:linear-gradient(180deg,#EAF0FD 0%,#F8FAFF 40%,#fff 100%); position:relative; overflow:hidden;">
+    <div style="position:absolute; width:220px; height:220px; border-radius:50%; background:var(--secondary); opacity:.08; top:-80px; right:-60px;"></div>
+    <div style="position:absolute; width:160px; height:160px; border-radius:50%; background:var(--secondary); opacity:.06; top:60px; left:-70px;"></div>
+    <div style="position:relative; display:flex; justify-content:space-between; align-items:center; padding:20px 20px 0;">
+      <span style="font-weight:800; font-style:italic; font-size:19px; color:var(--secondary);">PASTI <span style="color:var(--primary-hover);">PUNYA</span></span>
+      <div style="width:34px; height:34px; border-radius:50%; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.08); display:flex; align-items:center; justify-content:center;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       </div>
-      <div style="font-size:21px; font-weight:700; color:#fff; line-height:1.3;">Tabungan <b style="color:#F3A616; font-weight:800;">Pasti Aman,</b><br>Pasti Punya.</div>
-      <p style="font-size:12px; color:rgba(255,255,255,.5); margin:8px 0 0;">Cek saldo & riwayat tabungan Anda kapan saja</p>
     </div>
-    <div class="shell" style="position:relative; padding:0 24px;">
+    <div style="position:relative; padding:16px 20px 0;">
+      <div style="border-radius:14px; overflow:hidden; aspect-ratio:2.3/1; background:linear-gradient(135deg,var(--primary),var(--primary-hover)); display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:600;">Tabungan Pasti Aman, Pasti Punya.</div>
+    </div>
+    <div style="position:relative; text-align:center; padding:20px 24px 4px;">
+      <p style="font-size:13px; color:#5a6472; margin:0;">Selamat datang di</p>
+      <div style="font-size:16px; font-weight:700; color:var(--text-main); margin:2px 0 0;">Aplikasi Tabungan Digital</div>
+    </div>
+    <div class="shell" style="position:relative; padding:18px 24px 0; flex:1;">
       <div class="card" style="padding:26px; background:#fff;">
         <div style="display:flex; gap:6px; background:#F1F5F9; border-radius:999px; padding:4px; margin-bottom:20px;">
           <button type="button" class="tab-btn active" id="tab-first" onclick="setLoginMode('first')">Pertama Kali</button>
@@ -126,7 +116,7 @@
         </form>
         <div id="login-err" style="color:var(--danger); font-size:12.5px; margin-top:12px; text-align:center;"></div>
       </div>
-      <div style="text-align:center; font-size:11.5px; color:rgba(255,255,255,.55); margin:20px 0;">
+      <div style="text-align:center; font-size:11.5px; color:var(--text-muted); margin:20px 0;">
         Lupa Username/Password atau belum punya akses login? Hubungi staff agen Anda langsung.
       </div>
     </div>
@@ -134,14 +124,14 @@
 
   <!-- BUAT PIN (pertama kali) -->
   <div id="screen-setpin" class="hidden fade-in" style="min-height:100vh; display:flex; flex-direction:column;">
-    <div style="position:relative; background:linear-gradient(180deg,var(--login-bg-1),var(--login-bg-2) 75%); padding:56px 24px 64px; overflow:hidden; border-radius:0 0 36px 36px;">
-      <div style="position:absolute; width:200px; height:200px; background:var(--login-glow); border-radius:50%; filter:blur(60px); opacity:.3; top:-70px; right:-50px;"></div>
-      <div style="position:relative; text-align:center; color:#fff;">
-        <div class="badge-3d" style="width:58px; height:58px; border-radius:18px; background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.08)); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; border:1px solid rgba(255,255,255,.18);">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F3A616" stroke-width="2.2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <div style="position:relative; background:linear-gradient(180deg,#EAF0FD 0%,#F8FAFF 100%); padding:56px 24px 64px; overflow:hidden; border-radius:0 0 36px 36px;">
+      <div style="position:absolute; width:200px; height:200px; background:var(--secondary); border-radius:50%; opacity:.08; top:-70px; right:-50px;"></div>
+      <div style="position:relative; text-align:center; color:var(--text-main);">
+        <div style="width:58px; height:58px; border-radius:18px; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.08); display:flex; align-items:center; justify-content:center; margin:0 auto 18px;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2.2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
-        <h1 style="font-size:20px; font-weight:800; margin:0;">Buat Akun Anda</h1>
-        <p style="opacity:.75; font-size:13px; margin:6px 0 0;">Buat Username & Password sendiri untuk login berikutnya</p>
+        <h1 style="font-size:20px; font-weight:800; margin:0; color:var(--text-main);">Buat Akun Anda</h1>
+        <p style="opacity:.6; font-size:13px; margin:6px 0 0;">Buat Username & Password sendiri untuk login berikutnya</p>
       </div>
     </div>
     <div class="shell" style="flex:1; margin-top:-38px;">
@@ -559,22 +549,18 @@ function renderHome(){
       ${programAllocated>0 ? `<div style="font-size:10.5px; color:var(--primary); margin-top:6px;">+ ${rupiah(programAllocated)} di Program Tabungan</div>` : ''}
     </div>
 
-    <div style="margin:-30px 20px 0; background:#fff; border-radius:18px; padding:16px 6px; display:grid; grid-template-columns:repeat(4,1fr); gap:4px; box-shadow:0 1px 8px rgba(10,29,60,.08); position:relative;">
-      <div style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;" onclick="alert('Untuk setor tunai, silakan datang langsung ke agen kami.')">
-        <div style="width:42px; height:42px; border-radius:13px; background:var(--icon-box-1); display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--primary-hover)" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></div>
-        <span style="font-size:9.5px; color:var(--text-main); text-align:center;">Setor</span>
+    <div style="margin:-30px 20px 0; background:#fff; border-radius:18px; padding:18px 8px; display:grid; grid-template-columns:repeat(3,1fr); gap:6px; box-shadow:0 1px 8px rgba(10,29,60,.08); position:relative;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer;" onclick="openAjakTeman()">
+        <div style="width:44px; height:44px; border-radius:13px; background:var(--icon-box-2); display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <span style="font-size:10px; color:var(--text-main); text-align:center;">Ajak Teman</span>
       </div>
-      <div style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;" onclick="alert('Untuk tarik tunai, silakan datang langsung ke agen kami.')">
-        <div style="width:42px; height:42px; border-radius:13px; background:var(--icon-box-2); display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></div>
-        <span style="font-size:9.5px; color:var(--text-main); text-align:center;">Tarik</span>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer;" onclick="openPromoList()">
+        <div style="width:44px; height:44px; border-radius:13px; background:var(--icon-box-1); display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-hover)" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5" fill="var(--primary-hover)" stroke="none"/></svg></div>
+        <span style="font-size:10px; color:var(--text-main); text-align:center;">Promo</span>
       </div>
-      <div style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;" onclick="switchTab('program')">
-        <div style="width:42px; height:42px; border-radius:13px; background:var(--icon-box-1); display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--primary-hover)" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="var(--primary-hover)"/></svg></div>
-        <span style="font-size:9.5px; color:var(--text-main); text-align:center;">Program</span>
-      </div>
-      <div style="display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;" onclick="switchTab('riwayat')">
-        <div style="width:42px; height:42px; border-radius:13px; background:var(--icon-box-2); display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div>
-        <span style="font-size:9.5px; color:var(--text-main); text-align:center;">Riwayat</span>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer;" onclick="openInfoRekening()">
+        <div style="width:44px; height:44px; border-radius:13px; background:var(--icon-box-2); display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></div>
+        <span style="font-size:10px; color:var(--text-main); text-align:center;">Info Rekening</span>
       </div>
     </div>
 
@@ -605,6 +591,52 @@ function renderHome(){
   `;
 }
 function toggleBalance(){ STATE.showBalance = !STATE.showBalance; renderCurrentTab(); }
+
+/* ---------- Menu cepat: Ajak Teman, Promo, Info Rekening ---------- */
+function openAjakTeman(){
+  const c = STATE.customer;
+  const pesan = `Halo! Saya mau ajak kamu buka tabungan di ${document.title.split('—')[0].trim()}. Aman, gampang dicek kapan saja lewat HP. Yuk tanya-tanya ke agen terdekat!`;
+  openSheet(`
+    <h3 style="margin:0 0 4px; color:var(--text-main);">Ajak Teman Menabung</h3>
+    <p style="font-size:12.5px; color:var(--text-muted); margin:0 0 18px;">Bagikan pesan ini ke teman/keluarga yang belum punya tabungan.</p>
+    <div style="background:var(--bg); border-radius:12px; padding:14px; font-size:13px; color:var(--text-main); line-height:1.6; margin-bottom:18px;">${pesan}</div>
+    <button class="btn-primary" style="width:100%; margin-bottom:10px;" onclick="window.open('https://wa.me/?text='+encodeURIComponent('${pesan}'),'_blank')">Bagikan lewat WhatsApp</button>
+    <button class="btn-outline" style="width:100%;" onclick="closeSheet()">Tutup</button>
+  `);
+}
+function openPromoList(){
+  const banners = STATE.banners;
+  openSheet(`
+    <h3 style="margin:0 0 16px; color:var(--text-main);">Promo & Penawaran</h3>
+    ${banners.length ? banners.map(b=>`
+      <div style="border-radius:14px; overflow:hidden; margin-bottom:12px; border:1px solid var(--border);">
+        <img src="${b.imageUrl}" style="width:100%; display:block;">
+        ${b.deskripsi ? `<div style="padding:12px 14px; font-size:12.5px; color:var(--text-main); line-height:1.5;">${b.deskripsi}</div>` : ''}
+      </div>`).join('') : `<div class="empty-box">Belum ada promo aktif saat ini.</div>`}
+    <button class="btn-outline" style="width:100%; margin-top:6px;" onclick="closeSheet()">Tutup</button>
+  `);
+}
+function openInfoRekening(){
+  const c = STATE.customer;
+  openSheet(`
+    <h3 style="margin:0 0 16px; color:var(--text-main);">Info Rekening</h3>
+    <div style="background:var(--bg); border-radius:14px; padding:20px; text-align:center; margin-bottom:16px;">
+      <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">No. Rekening</div>
+      <div style="font-size:22px; font-weight:700; color:var(--secondary); letter-spacing:1px; font-family:monospace;" id="info-norek-text">${c.noRekening}</div>
+    </div>
+    <div style="display:flex; justify-content:space-between; padding:10px 4px; border-bottom:1px solid var(--border);"><span style="font-size:12px; color:var(--text-muted);">Nama</span><b style="font-size:12.5px;">${c.nama}</b></div>
+    <div style="display:flex; justify-content:space-between; padding:10px 4px;"><span style="font-size:12px; color:var(--text-muted);">No. Member</span><b style="font-size:12.5px;">${c.noMember}</b></div>
+    <button class="btn-primary" style="width:100%; margin-top:16px; margin-bottom:10px;" onclick="salinNoRekening('${c.noRekening}')">📋 Salin No. Rekening</button>
+    <button class="btn-outline" style="width:100%;" onclick="closeSheet()">Tutup</button>
+  `);
+}
+function salinNoRekening(norek){
+  navigator.clipboard.writeText(norek).then(()=>{
+    showToast('Tersalin', 'No. Rekening berhasil disalin.', '📋');
+  }).catch(()=>{
+    showToast('Gagal menyalin', 'Coba salin manual: '+norek, '⚠️');
+  });
+}
 
 /* ---------- Efek kartu 3D: miring mengikuti jari/mouse, kembali normal saat lepas ---------- */
 function initCardTilt(){
