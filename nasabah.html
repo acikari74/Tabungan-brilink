@@ -169,6 +169,13 @@
         <div style="width:28px; height:28px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; color:var(--secondary); font-weight:700; font-size:11px;" id="hdr-avatar">—</div>
       </div>
     </header>
+    <div id="install-banner" class="hidden" style="background:var(--primary); padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <div style="font-size:11.5px; color:var(--secondary); font-weight:600;">📲 Instal app ini di HP Anda, sekali ketuk!</div>
+      <div style="display:flex; gap:8px; flex-shrink:0;">
+        <button onclick="doInstallApp()" style="background:var(--secondary); color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:11.5px; font-weight:700;">Instal</button>
+        <button onclick="dismissInstallBanner()" style="background:none; border:none; color:var(--secondary); font-size:14px; padding:0 2px;">✕</button>
+      </div>
+    </div>
 
     <div id="page-home" class="fade-in"></div>
     <div id="page-riwayat" class="shell fade-in hidden" style="padding-top:18px;"></div>
@@ -431,6 +438,9 @@ async function mintaIzinNotifikasi(){
 /* ---------- MASUK APLIKASI (real-time listeners) ---------- */
 async function enterApp(){
   showScreen('screen-main');
+  if(deferredInstallPrompt && localStorage.getItem('install_banner_dismissed')!=='true'){
+    document.getElementById('install-banner').classList.remove('hidden');
+  }
   if(unsubCustomer) unsubCustomer();
   if(unsubTx) unsubTx();
   if(unsubGoals) unsubGoals();
@@ -800,6 +810,30 @@ function emptyBox(imgKey, text){
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(err=>console.error('SW gagal:', err)); });
 }
+
+/* ---------- Instal App (sekali ketuk, tidak perlu menu manual) ---------- */
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if(localStorage.getItem('install_banner_dismissed')==='true') return;
+  const banner = document.getElementById('install-banner');
+  if(banner && !document.getElementById('screen-main').classList.contains('hidden')) banner.classList.remove('hidden');
+});
+async function doInstallApp(){
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  document.getElementById('install-banner').classList.add('hidden');
+}
+function dismissInstallBanner(){
+  document.getElementById('install-banner').classList.add('hidden');
+  localStorage.setItem('install_banner_dismissed', 'true');
+}
+window.addEventListener('appinstalled', ()=>{
+  document.getElementById('install-banner')?.classList.add('hidden');
+});
 </script>
 </body>
 </html>
