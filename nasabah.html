@@ -625,18 +625,22 @@ function renderHome(){
       ${programAllocated>0 ? `<div style="font-size:10.5px; color:var(--primary); margin-top:6px;">+ ${rupiah(programAllocated)} di Program Tabungan</div>` : ''}
     </div>
 
-    <div style="margin:-30px 20px 0; background:#fff; border-radius:18px; padding:18px 8px; display:grid; grid-template-columns:repeat(3,1fr); gap:6px; box-shadow:0 1px 8px rgba(10,29,60,.08); position:relative;">
+    <div style="margin:-30px 20px 0; background:#fff; border-radius:18px; padding:18px 6px; display:grid; grid-template-columns:repeat(4,1fr); gap:4px; box-shadow:0 1px 8px rgba(10,29,60,.08); position:relative;">
       <div style="display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer;" onclick="openAjakTeman()">
-        <div style="width:44px; height:44px; border-radius:13px; background:var(--icon-box-2); display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-        <span style="font-size:10px; color:var(--text-main); text-align:center;">Ajak Teman</span>
+        <div style="width:42px; height:42px; border-radius:13px; background:var(--icon-box-2); display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <span style="font-size:9.5px; color:var(--text-main); text-align:center;">Ajak Teman</span>
       </div>
       <div style="display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer;" onclick="openPromoList()">
-        <div style="width:44px; height:44px; border-radius:13px; background:var(--icon-box-1); display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-hover)" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5" fill="var(--primary-hover)" stroke="none"/></svg></div>
-        <span style="font-size:10px; color:var(--text-main); text-align:center;">Promo</span>
+        <div style="width:42px; height:42px; border-radius:13px; background:var(--icon-box-1); display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--primary-hover)" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5" fill="var(--primary-hover)" stroke="none"/></svg></div>
+        <span style="font-size:9.5px; color:var(--text-main); text-align:center;">Promo</span>
       </div>
       <div style="display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer;" onclick="openInfoRekening()">
-        <div style="width:44px; height:44px; border-radius:13px; background:var(--icon-box-2); display:flex; align-items:center; justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></div>
-        <span style="font-size:10px; color:var(--text-main); text-align:center;">Info Rekening</span>
+        <div style="width:42px; height:42px; border-radius:13px; background:var(--icon-box-2); display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></div>
+        <span style="font-size:9.5px; color:var(--text-main); text-align:center;">Info Rekening</span>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer;" onclick="openProgramTersedia()">
+        <div style="width:42px; height:42px; border-radius:13px; background:var(--icon-box-1); display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--primary-hover)" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="var(--primary-hover)"/></svg></div>
+        <span style="font-size:9.5px; color:var(--text-main); text-align:center;">Program Tersedia</span>
       </div>
     </div>
 
@@ -794,35 +798,40 @@ function goalScheme(price, months){
 const KATALOG_EMOJI = { hp:'📱', tv:'📺', laptop:'💻', lain:'🎯' };
 function renderProgram(){
   const goals = STATE.goals;
-  const katalog = STATE.katalog;
   document.getElementById('page-program').innerHTML = `
     <h2 style="font-size:19px; margin:14px 0 16px;">Program Tabungan</h2>
     ${goals.length ? goals.map(goalCard).join('') : `<div class="card" style="padding:4px;">${emptyBox('empty_wallet','Belum ada program tabungan aktif. Hubungi staff agen untuk membuatkan program.')}</div>`}
-
-    <div style="margin-top:28px; margin-bottom:14px;">
-      <h3 style="font-size:15px; margin:0 0 2px;">Program Tersedia</h3>
-      <p style="font-size:11.5px; color:var(--text-muted); margin:0;">Contoh tabungan yang bisa Anda mulai — tinggal minta staff untuk buatkan.</p>
-    </div>
-    ${katalog.length ? katalog.map(katalogCardNasabah).join('') : `<div class="card" style="padding:4px;">${emptyBox('empty_wallet','Belum ada contoh program tersedia saat ini.')}</div>`}
   `;
+}
+function openProgramTersedia(){
+  const katalog = STATE.katalog;
+  openSheet(`
+    <h3 style="margin:0 0 4px; color:var(--text-main);">Program Tersedia</h3>
+    <p style="font-size:12px; color:var(--text-muted); margin:0 0 16px;">Contoh tabungan yang bisa Anda mulai.</p>
+    ${katalog.length ? katalog.map(katalogCardNasabah).join('') : `<div class="empty-box">Belum ada contoh program tersedia saat ini.</div>`}
+    <button class="btn-outline" style="width:100%; margin-top:6px;" onclick="closeSheet()">Tutup</button>
+  `);
 }
 function katalogCardNasabah(k){
   const s = goalScheme(k.harga, k.tenorBulan||6);
   return `
-  <div class="card" style="padding:18px; margin-bottom:12px;">
-    <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-      <div style="font-size:26px;">${KATALOG_EMOJI[k.kategori]||'🎯'}</div>
-      <div style="flex:1; min-width:0;">
-        <div style="font-weight:700; font-size:13.5px;">${k.namaBarang}</div>
-        <div style="font-size:11.5px; color:var(--text-muted);">${rupiah(k.harga)} • ${k.tenorBulan} bulan</div>
+  <div class="card" style="padding:0; margin-bottom:12px; overflow:hidden;">
+    ${k.fotoUrl ? `<img src="${k.fotoUrl}" style="width:100%; height:130px; object-fit:cover; display:block;">` : ''}
+    <div style="padding:16px;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+        ${k.fotoUrl ? '' : `<div style="font-size:26px;">${KATALOG_EMOJI[k.kategori]||'🎯'}</div>`}
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:700; font-size:13.5px;">${k.namaBarang}</div>
+          <div style="font-size:11.5px; color:var(--text-muted);">${rupiah(k.harga)} • ${k.tenorBulan} bulan</div>
+        </div>
       </div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-bottom:14px;">
+        <div style="background:var(--bg); border-radius:9px; padding:8px; text-align:center;"><div style="font-size:9px; color:var(--text-muted);">Per Hari</div><b style="font-size:11px;">${rupiah(s.perHari)}</b></div>
+        <div style="background:var(--icon-box-1); border-radius:9px; padding:8px; text-align:center;"><div style="font-size:9px; color:var(--primary-hover);">Per Minggu</div><b style="font-size:11px; color:var(--primary-hover);">${rupiah(s.perMinggu)}</b></div>
+        <div style="background:var(--bg); border-radius:9px; padding:8px; text-align:center;"><div style="font-size:9px; color:var(--text-muted);">Per Bulan</div><b style="font-size:11px;">${rupiah(s.perBulan)}</b></div>
+      </div>
+      <button class="btn-outline" style="width:100%;" onclick="mintaKatalogProgram('${k.id}')">Tanya ke Staff</button>
     </div>
-    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-bottom:14px;">
-      <div style="background:var(--bg); border-radius:9px; padding:8px; text-align:center;"><div style="font-size:9px; color:var(--text-muted);">Per Hari</div><b style="font-size:11px;">${rupiah(s.perHari)}</b></div>
-      <div style="background:var(--icon-box-1); border-radius:9px; padding:8px; text-align:center;"><div style="font-size:9px; color:var(--primary-hover);">Per Minggu</div><b style="font-size:11px; color:var(--primary-hover);">${rupiah(s.perMinggu)}</b></div>
-      <div style="background:var(--bg); border-radius:9px; padding:8px; text-align:center;"><div style="font-size:9px; color:var(--text-muted);">Per Bulan</div><b style="font-size:11px;">${rupiah(s.perBulan)}</b></div>
-    </div>
-    <button class="btn-outline" style="width:100%;" onclick="mintaKatalogProgram('${k.id}')">Minta Dibuatkan Program Ini</button>
   </div>`;
 }
 function mintaKatalogProgram(id){
@@ -830,13 +839,13 @@ function mintaKatalogProgram(id){
   if(!k) return;
   const c = STATE.customer;
   const wa = STATE.agentSettings.wa;
-  const pesan = `Halo, saya ${c.nama} (No. Rekening ${c.noRekening}) mau minta dibuatkan program tabungan "${k.namaBarang}" seharga ${rupiah(k.harga)} dengan tenor ${k.tenorBulan} bulan. Terima kasih.`;
+  const pesan = `Halo, saya ${c.nama} (No. Rekening ${c.noRekening}) mau tanya-tanya soal program tabungan "${k.namaBarang}" seharga ${rupiah(k.harga)} dengan tenor ${k.tenorBulan} bulan. Terima kasih.`;
   if(wa){
     const nomor = String(wa).replace(/\D/g,'').replace(/^0/,'62');
     window.open(`https://wa.me/${nomor}?text=${encodeURIComponent(pesan)}`, '_blank');
   } else {
     openSheet(`
-      <h3 style="margin:0 0 12px; color:var(--text-main);">Minta Program Ini</h3>
+      <h3 style="margin:0 0 12px; color:var(--text-main);">Tanya ke Staff</h3>
       <div style="background:var(--bg); border-radius:12px; padding:14px; font-size:13px; line-height:1.6; margin-bottom:16px;">${pesan}</div>
       <button class="btn-outline" style="width:100%;" onclick="closeSheet()">Tutup</button>
     `);
