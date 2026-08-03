@@ -21,7 +21,7 @@
 <style>
   :root{
     --primary:#FFD700; --primary-hover:#B8860B; --secondary:#4169E1; --secondary-light:#5B7FE8;
-    --bg:#F5F6FA; --surface:#FFFFFF; --success:#4169E1; --success-bg:#E8EDFB; --danger:#FF0000; --danger-bg:#FFE5E5;
+    --bg:#F5F6FA; --surface:#FFFFFF; --success:#1e8e3e; --success-bg:#E6F4EA; --danger:#FF0000; --danger-bg:#FFE5E5;
     --text-main:#1a1a1a; --text-muted:#8A8F9C; --border:#EEF0F4;
     --icon-box-1:#FFF6D6; --icon-box-2:#E8EDFB;
   }
@@ -246,7 +246,7 @@ function fmtDate(d){ const dt = new Date(d); return dt.toLocaleDateString('id-ID
 function fmtTime(d){ const dt = new Date(d); return dt.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }
 function initials(name){ return (name||'?').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase(); }
 
-const STATE = { customerId:null, customer:null, transactions:[], goals:[], banners:[], showBalance:true, tab:'home', bannerIndex:0 };
+const STATE = { customerId:null, customer:null, transactions:[], goals:[], banners:[], showBalance:true, tab:'home', bannerIndex:0, riwayatDate:null };
 let unsubCustomer=null, unsubTx=null, unsubGoals=null, unsubBanners=null, bannerTimer=null;
 
 function showScreen(id){
@@ -750,13 +750,29 @@ function txRow(t){
 
 /* ---------- RIWAYAT ---------- */
 function renderRiwayat(){
-  const txs = STATE.transactions;
+  if(!STATE.riwayatDate){
+    const now = new Date();
+    STATE.riwayatDate = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  }
+  const txs = STATE.transactions.filter(t=>{
+    const d = new Date(t.date);
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    return key === STATE.riwayatDate;
+  });
   document.getElementById('page-riwayat').innerHTML = `
     <h2 style="font-size:19px; margin:14px 0 16px;">Riwayat Transaksi</h2>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+      <input type="date" id="riwayat-date-input" value="${STATE.riwayatDate}" max="${new Date().toISOString().slice(0,10)}" class="field-input" style="flex:1;" onchange="ubahTanggalRiwayat(this.value)">
+      <button class="btn-outline" style="padding:12px 16px; white-space:nowrap;" onclick="ubahTanggalRiwayat(new Date().toISOString().slice(0,10))">Hari Ini</button>
+    </div>
     <div class="card" style="padding:6px 4px;">
-      ${txs.length ? txs.map(txRow).join('') : emptyBox('empty_wallet','Belum ada transaksi tercatat')}
+      ${txs.length ? txs.map(txRow).join('') : emptyBox('empty_wallet','Tidak ada transaksi pada tanggal ini')}
     </div>
   `;
+}
+function ubahTanggalRiwayat(val){
+  STATE.riwayatDate = val;
+  renderRiwayat();
 }
 
 /* ---------- PROGRAM (Kantong) ---------- */
