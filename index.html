@@ -527,7 +527,7 @@ function refreshCurrentView(){
 function setupRealtimeListeners(){
   stopRealtimeListeners();
   return new Promise((resolve)=>{
-    let loaded = { customers:false, transactions:false, goals:false, logs:false, banners:false };
+    let loaded = { customers:false, transactions:false, goals:false, logs:false, banners:false, katalog:false };
     const checkAllLoaded = ()=>{ if(Object.values(loaded).every(Boolean)) resolve(); };
 
     unsubRT.push(db.collection('customers').orderBy('tglDaftar').onSnapshot(snap=>{
@@ -556,6 +556,11 @@ function setupRealtimeListeners(){
       STATE.banners = snap.docs.map(d=>({id:d.id, ...d.data()}));
       loaded.banners = true; checkAllLoaded(); refreshCurrentView();
     }, err=>{ console.error('banners RT', err); loaded.banners=true; checkAllLoaded(); }));
+
+    unsubRT.push(db.collection('savings_catalog').orderBy('urutan').onSnapshot(snap=>{
+      STATE.katalog = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      loaded.katalog = true; checkAllLoaded(); refreshCurrentView();
+    }, err=>{ console.error('katalog RT', err); loaded.katalog=true; checkAllLoaded(); }));
   });
 }
 async function fbSaveArray(coll, arr){
@@ -613,6 +618,7 @@ let STATE = {
   logs: [],
   goals: [],
   banners: [],
+  katalog: [],
   currentUser: null,
   view: 'dashboard',
   darkMode: false,
@@ -2348,6 +2354,17 @@ function viewPengaturan(){
       </div>
       ${isAdmin? `
       <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-head"><h3>Katalog Program Tabungan</h3>
+          <button class="btn btn-primary btn-sm" onclick="openAddKatalog()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Item
+          </button>
+        </div>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Contoh program tabungan (HP, Laptop, TV, dll) yang ditampilkan ke nasabah di app-nya, lengkap dengan rincian tabungan per hari/minggu/bulan. Membantu nasabah memutuskan mau nabung apa.</p>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px;">
+          ${STATE.katalog.length ? STATE.katalog.map(katalogCard).join('') : '<div class="empty-state" style="grid-column:1/-1;">Belum ada item katalog. Klik "Tambah Item" untuk buat contoh pertama.</div>'}
+        </div>
+      </div>
+      <div class="panel" style="margin-bottom:16px;">
         <div class="panel-head"><h3>QR Code App Nasabah</h3>
           <button class="btn btn-outline btn-sm" onclick="printQrNasabah()">🖨️ Cetak</button>
         </div>
@@ -2535,6 +2552,106 @@ async function deleteUser(id){
   }catch(err){ toast('Gagal menghapus', pesanRamah(err), true); }
 }
 /* ============================= BANNER PROMO (App Nasabah) ============================= */
+/* ============================= KATALOG PROGRAM TABUNGAN ============================= */
+function katalogCard(k){
+  const s = goalScheme(k.harga, k.tenorBulan||6);
+  return `
+  <div style="border:1px solid var(--border); border-radius:12px; padding:14px; background:var(--card); ${k.aktif?'':'opacity:.45;'}">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+      <div style="font-size:24px;">${GOAL_CATS[k.kategori]?.emoji||'🎯'}</div>
+      <span class="pill ${k.aktif?'green':'gray'}" style="cursor:pointer;" onclick="toggleKatalogActive('${k.id}')">${k.aktif?'Aktif':'Nonaktif'}</span>
+    </div>
+    <div style="font-weight:700; font-size:13.5px; margin-bottom:2px;">${k.namaBarang}</div>
+    <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">${rupiah(k.harga)} • ${k.tenorBulan} bulan</div>
+    <div style="font-size:11px; color:var(--muted); line-height:1.6; margin-bottom:10px;">
+      Per hari: <b style="color:var(--text);">${rupiah(s.perHari)}</b><br>
+      Per minggu: <b style="color:var(--text);">${rupiah(s.perMinggu)}</b><br>
+      Per bulan: <b style="color:var(--text);">${rupiah(s.perBulan)}</b>
+    </div>
+    <div style="display:flex; gap:6px;">
+      <button class="btn btn-outline btn-sm" style="flex:1; padding:4px;" onclick="openEditKatalog('${k.id}')">Edit</button>
+      <button class="btn btn-outline btn-sm" style="flex:1; padding:4px; color:var(--red); border-color:var(--red);" onclick="deleteKatalog('${k.id}')">Hapus</button>
+    </div>
+  </div>`;
+}
+function openAddKatalog(){
+  openModal(`
+    <div class="modal-head"><h3>Tambah Item Katalog</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Kategori</label>
+        <select id="kt-kategori">${Object.entries(GOAL_CATS).map(([k,v])=>`<option value="${k}">${v.emoji} ${v.label}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Nama/Model Barang</label><input id="kt-nama" placeholder="Contoh: HP Samsung A56"></div>
+      <div class="field"><label>Harga (Rp)</label><input id="kt-harga" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this)"></div>
+      <div class="field"><label>Lama Menabung (bulan)</label><input id="kt-tenor" type="number" min="1" max="24" value="6"></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="saveKatalog()">Simpan</button></div>
+  `);
+}
+async function saveKatalog(){
+  const kategori = document.getElementById('kt-kategori').value;
+  const namaBarang = document.getElementById('kt-nama').value.trim();
+  const harga = getMoneyInput('kt-harga');
+  const tenorBulan = Number(document.getElementById('kt-tenor').value)||6;
+  if(!namaBarang || harga<=0){ toast('Data belum lengkap', 'Nama barang dan harga wajib diisi.', true); return; }
+  const id = uid('KT');
+  const urutan = STATE.katalog.length ? Math.max(...STATE.katalog.map(k=>k.urutan||0))+1 : 1;
+  const item = { id, kategori, namaBarang, harga, tenorBulan, urutan, aktif:true };
+  try{
+    await db.collection('savings_catalog').doc(id).set(item);
+    addLog(`Item katalog ditambahkan: ${namaBarang}`, 'info');
+    toast('Tersimpan', `${namaBarang} sudah muncul di app Nasabah.`);
+    closeModal();
+  }catch(err){ toast('Gagal menyimpan', pesanRamah(err), true); }
+}
+function openEditKatalog(id){
+  const k = STATE.katalog.find(x=>x.id===id);
+  if(!k) return;
+  openModal(`
+    <div class="modal-head"><h3>Edit Item Katalog</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Kategori</label>
+        <select id="kt-kategori">${Object.entries(GOAL_CATS).map(([key,v])=>`<option value="${key}" ${key===k.kategori?'selected':''}>${v.emoji} ${v.label}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Nama/Model Barang</label><input id="kt-nama" value="${k.namaBarang}"></div>
+      <div class="field"><label>Harga (Rp)</label><input id="kt-harga" type="text" inputmode="numeric" value="${k.harga.toLocaleString('id-ID')}" oninput="formatMoneyInput(this)"></div>
+      <div class="field"><label>Lama Menabung (bulan)</label><input id="kt-tenor" type="number" min="1" max="24" value="${k.tenorBulan}"></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal()">Batal</button><button class="btn btn-primary" onclick="updateKatalog('${id}')">Simpan Perubahan</button></div>
+  `);
+}
+async function updateKatalog(id){
+  const k = STATE.katalog.find(x=>x.id===id);
+  if(!k) return;
+  const kategori = document.getElementById('kt-kategori').value;
+  const namaBarang = document.getElementById('kt-nama').value.trim();
+  const harga = getMoneyInput('kt-harga');
+  const tenorBulan = Number(document.getElementById('kt-tenor').value)||6;
+  if(!namaBarang || harga<=0){ toast('Data belum lengkap', 'Nama barang dan harga wajib diisi.', true); return; }
+  try{
+    await db.collection('savings_catalog').doc(id).update({ kategori, namaBarang, harga, tenorBulan });
+    addLog(`Item katalog diperbarui: ${namaBarang}`, 'info');
+    toast('Tersimpan', 'Perubahan berhasil disimpan.');
+    closeModal();
+  }catch(err){ toast('Gagal menyimpan', pesanRamah(err), true); }
+}
+async function toggleKatalogActive(id){
+  const k = STATE.katalog.find(x=>x.id===id);
+  if(!k) return;
+  try{ await db.collection('savings_catalog').doc(id).update({ aktif: !k.aktif }); }
+  catch(err){ toast('Gagal', pesanRamah(err), true); }
+}
+async function deleteKatalog(id){
+  const k = STATE.katalog.find(x=>x.id===id);
+  if(!k) return;
+  if(!confirm(`Hapus "${k.namaBarang}" dari katalog?`)) return;
+  try{
+    await db.collection('savings_catalog').doc(id).delete();
+    addLog(`Item katalog dihapus: ${k.namaBarang}`, 'info');
+    toast('Dihapus', `${k.namaBarang} sudah dihapus dari katalog.`);
+  }catch(err){ toast('Gagal menghapus', pesanRamah(err), true); }
+}
+
 function bannerCard(b){
   return `
   <div style="border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--card);">
