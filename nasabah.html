@@ -814,6 +814,9 @@ function openProgramTersedia(){
 }
 function katalogCardNasabah(k){
   const s = goalScheme(k.harga, k.tenorBulan||6);
+  const opsiTenor = [3,6,9,12,18,24];
+  if(!opsiTenor.includes(k.tenorBulan)) opsiTenor.push(k.tenorBulan);
+  opsiTenor.sort((a,b)=>a-b);
   return `
   <div class="card" style="padding:0; margin-bottom:12px; overflow:hidden;">
     ${k.fotoUrl ? `<img src="${k.fotoUrl}" style="width:100%; height:130px; object-fit:cover; display:block;">` : ''}
@@ -822,25 +825,38 @@ function katalogCardNasabah(k){
         ${k.fotoUrl ? '' : `<div style="font-size:26px;">${KATALOG_EMOJI[k.kategori]||'🎯'}</div>`}
         <div style="flex:1; min-width:0;">
           <div style="font-weight:700; font-size:13.5px;">${k.namaBarang}</div>
-          <div style="font-size:11.5px; color:var(--text-muted);">${rupiah(k.harga)} • ${k.tenorBulan} bulan</div>
+          <div style="font-size:11.5px; color:var(--text-muted);">${rupiah(k.harga)}</div>
         </div>
       </div>
       ${k.deskripsi ? `<p style="font-size:12px; color:var(--text-main); line-height:1.6; margin:0 0 14px;">${k.deskripsi}</p>` : ''}
+      <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">Mau nabung berapa lama?</label>
+      <select id="kt-tenor-select-${k.id}" class="field-input" style="margin-bottom:12px;" onchange="updateKatalogScheme('${k.id}', ${k.harga})">
+        ${opsiTenor.map(bln=>`<option value="${bln}" ${bln===k.tenorBulan?'selected':''}>${bln} bulan</option>`).join('')}
+      </select>
       <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-bottom:14px;">
-        <div style="background:var(--bg); border-radius:9px; padding:8px; text-align:center;"><div style="font-size:9px; color:var(--text-muted);">Per Hari</div><b style="font-size:11px;">${rupiah(s.perHari)}</b></div>
-        <div style="background:var(--icon-box-1); border-radius:9px; padding:8px; text-align:center;"><div style="font-size:9px; color:var(--primary-hover);">Per Minggu</div><b style="font-size:11px; color:var(--primary-hover);">${rupiah(s.perMinggu)}</b></div>
-        <div style="background:var(--bg); border-radius:9px; padding:8px; text-align:center;"><div style="font-size:9px; color:var(--text-muted);">Per Bulan</div><b style="font-size:11px;">${rupiah(s.perBulan)}</b></div>
+        <div style="background:var(--bg); border-radius:9px; padding:8px; text-align:center;"><div style="font-size:9px; color:var(--text-muted);">Per Hari</div><b style="font-size:11px;" id="kt-perhari-${k.id}">${rupiah(s.perHari)}</b></div>
+        <div style="background:var(--icon-box-1); border-radius:9px; padding:8px; text-align:center;"><div style="font-size:9px; color:var(--primary-hover);">Per Minggu</div><b style="font-size:11px; color:var(--primary-hover);" id="kt-perminggu-${k.id}">${rupiah(s.perMinggu)}</b></div>
+        <div style="background:var(--bg); border-radius:9px; padding:8px; text-align:center;"><div style="font-size:9px; color:var(--text-muted);">Per Bulan</div><b style="font-size:11px;" id="kt-perbulan-${k.id}">${rupiah(s.perBulan)}</b></div>
       </div>
       <button class="btn-outline" style="width:100%;" onclick="mintaKatalogProgram('${k.id}')">Tanya ke Staff</button>
     </div>
   </div>`;
+}
+function updateKatalogScheme(id, harga){
+  const tenor = Number(document.getElementById(`kt-tenor-select-${id}`).value);
+  const s = goalScheme(harga, tenor);
+  document.getElementById(`kt-perhari-${id}`).textContent = rupiah(s.perHari);
+  document.getElementById(`kt-perminggu-${id}`).textContent = rupiah(s.perMinggu);
+  document.getElementById(`kt-perbulan-${id}`).textContent = rupiah(s.perBulan);
 }
 function mintaKatalogProgram(id){
   const k = STATE.katalog.find(x=>x.id===id);
   if(!k) return;
   const c = STATE.customer;
   const wa = STATE.agentSettings.wa;
-  const pesan = `Halo, saya ${c.nama} (No. Rekening ${c.noRekening}) mau tanya-tanya soal program tabungan "${k.namaBarang}" seharga ${rupiah(k.harga)} dengan tenor ${k.tenorBulan} bulan. Terima kasih.`;
+  const tenorPilihan = Number(document.getElementById(`kt-tenor-select-${id}`)?.value) || k.tenorBulan;
+  const s = goalScheme(k.harga, tenorPilihan);
+  const pesan = `Halo, saya ${c.nama} (No. Rekening ${c.noRekening}) mau tanya-tanya soal program tabungan "${k.namaBarang}" seharga ${rupiah(k.harga)} dengan tenor ${tenorPilihan} bulan (kira-kira ${rupiah(s.perHari)}/hari atau ${rupiah(s.perBulan)}/bulan). Terima kasih.`;
   if(wa){
     const nomor = String(wa).replace(/\D/g,'').replace(/^0/,'62');
     window.open(`https://wa.me/${nomor}?text=${encodeURIComponent(pesan)}`, '_blank');
