@@ -1070,14 +1070,11 @@ function renderProfil(){
       ${profilRow('Bergabung', fmtDate(c.tglDaftar))}
       ${profilRow('Status', c.status)}
     </div>
-    <button class="btn-outline" id="btn-instal-profil" style="width:100%; margin-bottom:10px; display:none; align-items:center; justify-content:center; gap:8px;" onclick="doInstallApp()">📲 Instal App ke HP</button>
+    <button class="btn-outline" id="btn-instal-profil" style="width:100%; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="klikInstalApp()">📲 Instal App ke HP</button>
     <button class="btn-outline" style="width:100%; margin-bottom:10px;" onclick="openGantiPin()">Ganti Password</button>
     <button class="btn-outline" style="width:100%; color:var(--danger); border-color:#FEE2E2;" onclick="doLogout()">Keluar</button>
     <div id="pin-modal"></div>
   `;
-  if(deferredInstallPrompt){
-    document.getElementById('btn-instal-profil').style.display = 'flex';
-  }
 }
 function profilRow(label, val){
   return `<div style="display:flex; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--border);"><span style="font-size:12.5px; color:var(--text-muted);">${label}</span><b style="font-size:13px; text-align:right; max-width:60%;">${val||'—'}</b></div>`;
@@ -1154,6 +1151,31 @@ window.addEventListener('beforeinstallprompt', (e)=>{
   const banner = document.getElementById('install-banner');
   if(banner && !document.getElementById('screen-main').classList.contains('hidden')) banner.classList.remove('hidden');
 });
+function klikInstalApp(){
+  if(deferredInstallPrompt){
+    doInstallApp();
+    return;
+  }
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  const langkah = isIOS
+    ? `<ol style="padding-left:18px; margin:0; font-size:13px; line-height:2;">
+        <li>Ketuk ikon <b>Bagikan</b> (kotak dengan panah ke atas) di bagian bawah Safari</li>
+        <li>Scroll ke bawah, pilih <b>"Tambah ke Layar Utama"</b></li>
+        <li>Ketuk <b>"Tambah"</b> di pojok kanan atas</li>
+      </ol>`
+    : `<ol style="padding-left:18px; margin:0; font-size:13px; line-height:2;">
+        <li>Ketuk ikon <b>titik tiga (⋮)</b> di pojok kanan atas Chrome</li>
+        <li>Pilih <b>"Instal aplikasi"</b> atau <b>"Tambahkan ke layar utama"</b></li>
+        <li>Ketuk <b>"Instal"</b> / <b>"Tambahkan"</b> pada konfirmasi yang muncul</li>
+      </ol>`;
+  openSheet(`
+    <h3 style="margin:0 0 4px; color:var(--text-main);">Instal App ke HP</h3>
+    <p style="font-size:12px; color:var(--text-muted); margin:0 0 16px;">Browser Anda belum menawarkan instal otomatis saat ini, tapi tetap bisa kok lewat menu browser:</p>
+    <div style="background:var(--bg); border-radius:12px; padding:16px; margin-bottom:16px;">${langkah}</div>
+    <button class="btn-outline" style="width:100%;" onclick="closeSheet()">Tutup</button>
+  `);
+}
 async function doInstallApp(){
   if(!deferredInstallPrompt) return;
   deferredInstallPrompt.prompt();
@@ -1169,6 +1191,7 @@ function dismissInstallBanner(){
 }
 window.addEventListener('appinstalled', ()=>{
   document.getElementById('install-banner')?.classList.add('hidden');
+  document.getElementById('btn-instal-profil')?.classList.add('hidden');
 });
 </script>
 </body>
