@@ -674,6 +674,7 @@ function renderHome(){
   const saldoBebas = Math.max(0, c.saldo - programAllocated);
   document.getElementById('page-home').innerHTML = `
     <div style="background:var(--secondary); padding:16px 20px 44px;">
+      <div style="font-size:12.5px; color:rgba(255,255,255,.85); font-weight:600; margin-bottom:6px;">${sapaanWaktu()}, ${(c.nama||'Nasabah').split(' ')[0]} 👋</div>
       <div style="font-size:11.5px; color:rgba(255,255,255,.55);">Saldo bebas</div>
       <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
         <div style="font-size:24px; font-weight:700; color:#fff;" id="home-saldo">${STATE.showBalance ? rupiah(saldoBebas) : 'Rp ••••••••'}</div>
