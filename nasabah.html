@@ -1070,7 +1070,6 @@ function renderProfil(){
       ${profilRow('Bergabung', fmtDate(c.tglDaftar))}
       ${profilRow('Status', c.status)}
     </div>
-    <button class="btn-outline" id="btn-instal-profil" style="width:100%; margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="klikInstalApp()">📲 Instal App ke HP</button>
     <button class="btn-outline" style="width:100%; margin-bottom:10px;" onclick="openGantiPin()">Ganti Password</button>
     <button class="btn-outline" style="width:100%; color:var(--danger); border-color:#FEE2E2;" onclick="doLogout()">Keluar</button>
     <div id="pin-modal"></div>
@@ -1145,27 +1144,16 @@ let deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault();
   deferredInstallPrompt = e;
-  const btnProfil = document.getElementById('btn-instal-profil');
-  if(btnProfil) btnProfil.style.display = 'flex';
   if(localStorage.getItem('install_banner_dismissed')==='true') return;
   const banner = document.getElementById('install-banner');
   if(banner && !document.getElementById('screen-main').classList.contains('hidden')) banner.classList.remove('hidden');
 });
-function klikInstalApp(){
-  if(deferredInstallPrompt){
-    doInstallApp();
-    return;
-  }
-  showToast('Belum bisa instal', 'Coba lagi sebentar, atau tutup & buka ulang browser dulu.', '📲');
-}
 async function doInstallApp(){
   if(!deferredInstallPrompt) return;
   deferredInstallPrompt.prompt();
   await deferredInstallPrompt.userChoice;
   deferredInstallPrompt = null;
   document.getElementById('install-banner').classList.add('hidden');
-  const btnProfil = document.getElementById('btn-instal-profil');
-  if(btnProfil) btnProfil.style.display = 'none';
 }
 function dismissInstallBanner(){
   document.getElementById('install-banner').classList.add('hidden');
@@ -1173,7 +1161,6 @@ function dismissInstallBanner(){
 }
 window.addEventListener('appinstalled', ()=>{
   document.getElementById('install-banner')?.classList.add('hidden');
-  document.getElementById('btn-instal-profil')?.classList.add('hidden');
 });
 </script>
 </body>
