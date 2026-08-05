@@ -263,7 +263,7 @@ function fmtDate(d){ const dt = new Date(d); return dt.toLocaleDateString('id-ID
 function fmtTime(d){ const dt = new Date(d); return dt.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }
 function initials(name){ return (name||'?').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase(); }
 
-const STATE = { customerId:null, customer:null, transactions:[], goals:[], banners:[], katalog:[], agentSettings:{}, showBalance:true, tab:'home', bannerIndex:0, riwayatDate:null };
+const STATE = { customerId:null, customer:null, transactions:[], goals:[], banners:[], katalog:[], agentSettings:{}, showBalance:true, tab:'home', bannerIndex:0, riwayatDariTanggal:null, riwayatSampaiTanggal:null };
 let unsubCustomer=null, unsubTx=null, unsubGoals=null, unsubBanners=null, bannerTimer=null;
 
 function showScreen(id){
@@ -854,28 +854,58 @@ function txRow(t){
 
 /* ---------- RIWAYAT ---------- */
 function renderRiwayat(){
-  if(!STATE.riwayatDate){
-    const now = new Date();
-    STATE.riwayatDate = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-  }
+  const todayStr = new Date().toISOString().slice(0,10);
+  if(!STATE.riwayatDariTanggal) STATE.riwayatDariTanggal = todayStr;
+  if(!STATE.riwayatSampaiTanggal) STATE.riwayatSampaiTanggal = todayStr;
+
+  const dari = new Date(STATE.riwayatDariTanggal+'T00:00:00');
+  const sampai = new Date(STATE.riwayatSampaiTanggal+'T23:59:59');
   const txs = STATE.transactions.filter(t=>{
     const d = new Date(t.date);
-    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    return key === STATE.riwayatDate;
+    return d >= dari && d <= sampai;
   });
+  const rentangSamaHari = STATE.riwayatDariTanggal === STATE.riwayatSampaiTanggal;
+
   document.getElementById('page-riwayat').innerHTML = `
     <h2 style="font-size:19px; margin:14px 0 16px;">Riwayat Transaksi</h2>
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-      <input type="date" id="riwayat-date-input" value="${STATE.riwayatDate}" max="${new Date().toISOString().slice(0,10)}" class="field-input" style="flex:1;" onchange="ubahTanggalRiwayat(this.value)">
-      <button class="btn-outline" style="padding:12px 16px; white-space:nowrap;" onclick="ubahTanggalRiwayat(new Date().toISOString().slice(0,10))">Hari Ini</button>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+      <div style="flex:1;">
+        <label style="font-size:10.5px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Dari Tanggal</label>
+        <input type="date" id="riwayat-dari-input" value="${STATE.riwayatDariTanggal}" max="${todayStr}" class="field-input" onchange="ubahRentangRiwayat('dari', this.value)">
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:10.5px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">Sampai Tanggal</label>
+        <input type="date" id="riwayat-sampai-input" value="${STATE.riwayatSampaiTanggal}" max="${todayStr}" class="field-input" onchange="ubahRentangRiwayat('sampai', this.value)">
+      </div>
     </div>
+    <div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;">
+      <button class="btn-outline" style="padding:7px 12px; font-size:11px;" onclick="presetRentangRiwayat(0)">Hari Ini</button>
+      <button class="btn-outline" style="padding:7px 12px; font-size:11px;" onclick="presetRentangRiwayat(7)">7 Hari Terakhir</button>
+      <button class="btn-outline" style="padding:7px 12px; font-size:11px;" onclick="presetRentangRiwayat(30)">30 Hari Terakhir</button>
+    </div>
+    <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">${txs.length} transaksi ${rentangSamaHari?'pada tanggal ini':'dalam rentang ini'}</div>
     <div class="card" style="padding:6px 4px;">
-      ${txs.length ? txs.map(txRow).join('') : emptyBox('empty_wallet','Tidak ada transaksi pada tanggal ini')}
+      ${txs.length ? txs.map(txRow).join('') : emptyBox('empty_wallet','Tidak ada transaksi pada rentang tanggal ini')}
     </div>
   `;
 }
-function ubahTanggalRiwayat(val){
-  STATE.riwayatDate = val;
+function ubahRentangRiwayat(sisi, val){
+  if(sisi==='dari') STATE.riwayatDariTanggal = val;
+  else STATE.riwayatSampaiTanggal = val;
+  // Jaga supaya "dari" tidak pernah lebih besar dari "sampai"
+  if(STATE.riwayatDariTanggal > STATE.riwayatSampaiTanggal){
+    if(sisi==='dari') STATE.riwayatSampaiTanggal = STATE.riwayatDariTanggal;
+    else STATE.riwayatDariTanggal = STATE.riwayatSampaiTanggal;
+  }
+  renderRiwayat();
+}
+function presetRentangRiwayat(hariKeBelakang){
+  const now = new Date();
+  const sampai = now.toISOString().slice(0,10);
+  const dariDate = new Date(now);
+  dariDate.setDate(dariDate.getDate() - hariKeBelakang);
+  STATE.riwayatDariTanggal = dariDate.toISOString().slice(0,10);
+  STATE.riwayatSampaiTanggal = sampai;
   renderRiwayat();
 }
 
