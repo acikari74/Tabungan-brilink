@@ -627,6 +627,33 @@ let STATE = {
 };
 
 function uid(prefix){ return prefix + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,6).toUpperCase(); }
+/* Kompres & resize gambar di sisi browser sebelum upload — supaya tidak
+   pecah/blur (ukuran konsisten) dan lebih cepat diupload/dimuat. */
+function kompresGambar(file, maxDim, quality){
+  maxDim = maxDim || 1000; quality = quality || 0.85;
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e)=>{ img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = ()=>{
+      let { width, height } = img;
+      if(width > maxDim || height > maxDim){
+        if(width > height){ height = Math.round(height * (maxDim/width)); width = maxDim; }
+        else { width = Math.round(width * (maxDim/height)); height = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob=>{
+        if(!blob){ reject(new Error('Gagal memproses gambar')); return; }
+        resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type:'image/jpeg' }));
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 function rupiah(n){ n = Number(n)||0; return 'Rp ' + n.toLocaleString('id-ID'); }
 /* ---- Format input uang otomatis (titik ribuan saat mengetik) ---- */
 function formatMoneyInput(el){
@@ -2565,6 +2592,7 @@ function katalogCard(k){
       </div>
       <div style="font-weight:700; font-size:13.5px; margin-bottom:2px;">${k.namaBarang}</div>
       <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">${rupiah(k.harga)} • ${k.tenorBulan} bulan</div>
+      ${k.deskripsi ? `<div style="font-size:11.5px; color:var(--text); line-height:1.5; margin-bottom:8px;">${k.deskripsi}</div>` : ''}
       <div style="font-size:11px; color:var(--muted); line-height:1.6; margin-bottom:10px;">
         Per hari: <b style="color:var(--text);">${rupiah(s.perHari)}</b><br>
         Per minggu: <b style="color:var(--text);">${rupiah(s.perMinggu)}</b><br>
@@ -2585,6 +2613,7 @@ function openAddKatalog(){
         <select id="kt-kategori">${Object.entries(GOAL_CATS).map(([k,v])=>`<option value="${k}">${v.emoji} ${v.label}</option>`).join('')}</select>
       </div>
       <div class="field"><label>Nama/Model Barang</label><input id="kt-nama" placeholder="Contoh: HP Samsung A56"></div>
+      <div class="field"><label>Deskripsi (jelaskan kelebihan/spesifikasi singkat)</label><textarea id="kt-deskripsi" rows="3" placeholder="Contoh: RAM 8GB, kamera 50MP, baterai awet 2 hari. Cocok buat kerja & konten." style="width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid var(--border); background:var(--bg); color:var(--text); resize:vertical; font-family:inherit;"></textarea></div>
       <div class="field"><label>Harga (Rp)</label><input id="kt-harga" type="text" inputmode="numeric" placeholder="0" oninput="formatMoneyInput(this)"></div>
       <div class="field"><label>Lama Menabung (bulan)</label><input id="kt-tenor" type="number" min="1" max="24" value="6"></div>
       <div class="field"><label>Foto Produk (opsional, bikin lebih menarik)</label><input type="file" id="kt-foto" accept="image/*"></div>
@@ -2595,6 +2624,7 @@ function openAddKatalog(){
 async function saveKatalog(){
   const kategori = document.getElementById('kt-kategori').value;
   const namaBarang = document.getElementById('kt-nama').value.trim();
+  const deskripsi = document.getElementById('kt-deskripsi').value.trim();
   const harga = getMoneyInput('kt-harga');
   const tenorBulan = Number(document.getElementById('kt-tenor').value)||6;
   const fotoFile = document.getElementById('kt-foto').files[0];
@@ -2603,17 +2633,17 @@ async function saveKatalog(){
   const id = uid('KT');
   let fotoUrl = '';
   if(fotoFile){
-    if(fotoFile.size > 2*1024*1024){ toast('File terlalu besar', 'Maksimal 2MB untuk foto produk.', true); return; }
-    btn.innerHTML = '<span class="loading-spin"></span> Mengunggah foto...';
+    if(fotoFile.size > 8*1024*1024){ toast('File terlalu besar', 'Maksimal 8MB untuk foto asli sebelum diproses.', true); return; }
+    btn.innerHTML = '<span class="loading-spin"></span> Memproses & mengunggah foto...';
     try{
-      const ext = (fotoFile.name.split('.').pop()||'jpg').toLowerCase();
-      const ref = storage.ref().child(`katalog_photos/${id}.${ext}`);
-      await ref.put(fotoFile);
+      const kecil = await kompresGambar(fotoFile);
+      const ref = storage.ref().child(`katalog_photos/${id}.jpg`);
+      await ref.put(kecil);
       fotoUrl = await ref.getDownloadURL();
     }catch(err){ btn.innerHTML='Simpan'; toast('Gagal upload foto', pesanRamah(err), true); return; }
   }
   const urutan = STATE.katalog.length ? Math.max(...STATE.katalog.map(k=>k.urutan||0))+1 : 1;
-  const item = { id, kategori, namaBarang, harga, tenorBulan, fotoUrl, urutan, aktif:true };
+  const item = { id, kategori, namaBarang, deskripsi, harga, tenorBulan, fotoUrl, urutan, aktif:true };
   try{
     await db.collection('savings_catalog').doc(id).set(item);
     addLog(`Item katalog ditambahkan: ${namaBarang}`, 'info');
@@ -2631,6 +2661,7 @@ function openEditKatalog(id){
         <select id="kt-kategori">${Object.entries(GOAL_CATS).map(([key,v])=>`<option value="${key}" ${key===k.kategori?'selected':''}>${v.emoji} ${v.label}</option>`).join('')}</select>
       </div>
       <div class="field"><label>Nama/Model Barang</label><input id="kt-nama" value="${k.namaBarang}"></div>
+      <div class="field"><label>Deskripsi (jelaskan kelebihan/spesifikasi singkat)</label><textarea id="kt-deskripsi" rows="3" style="width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid var(--border); background:var(--bg); color:var(--text); resize:vertical; font-family:inherit;">${k.deskripsi||''}</textarea></div>
       <div class="field"><label>Harga (Rp)</label><input id="kt-harga" type="text" inputmode="numeric" value="${k.harga.toLocaleString('id-ID')}" oninput="formatMoneyInput(this)"></div>
       <div class="field"><label>Lama Menabung (bulan)</label><input id="kt-tenor" type="number" min="1" max="24" value="${k.tenorBulan}"></div>
       <div class="field"><label>Foto Produk (opsional, bikin lebih menarik)</label>
@@ -2646,6 +2677,7 @@ async function updateKatalog(id){
   if(!k) return;
   const kategori = document.getElementById('kt-kategori').value;
   const namaBarang = document.getElementById('kt-nama').value.trim();
+  const deskripsi = document.getElementById('kt-deskripsi').value.trim();
   const harga = getMoneyInput('kt-harga');
   const tenorBulan = Number(document.getElementById('kt-tenor').value)||6;
   const fotoFile = document.getElementById('kt-foto').files[0];
@@ -2653,17 +2685,17 @@ async function updateKatalog(id){
   const btn = document.getElementById('btn-update-katalog');
   let fotoUrl = k.fotoUrl || '';
   if(fotoFile){
-    if(fotoFile.size > 2*1024*1024){ toast('File terlalu besar', 'Maksimal 2MB untuk foto produk.', true); return; }
-    btn.innerHTML = '<span class="loading-spin"></span> Mengunggah foto...';
+    if(fotoFile.size > 8*1024*1024){ toast('File terlalu besar', 'Maksimal 8MB untuk foto asli sebelum diproses.', true); return; }
+    btn.innerHTML = '<span class="loading-spin"></span> Memproses & mengunggah foto...';
     try{
-      const ext = (fotoFile.name.split('.').pop()||'jpg').toLowerCase();
-      const ref = storage.ref().child(`katalog_photos/${id}.${ext}`);
-      await ref.put(fotoFile);
+      const kecil = await kompresGambar(fotoFile);
+      const ref = storage.ref().child(`katalog_photos/${id}.jpg`);
+      await ref.put(kecil);
       fotoUrl = await ref.getDownloadURL();
     }catch(err){ btn.innerHTML='Simpan Perubahan'; toast('Gagal upload foto', pesanRamah(err), true); return; }
   }
   try{
-    await db.collection('savings_catalog').doc(id).update({ kategori, namaBarang, harga, tenorBulan, fotoUrl });
+    await db.collection('savings_catalog').doc(id).update({ kategori, namaBarang, deskripsi, harga, tenorBulan, fotoUrl });
     addLog(`Item katalog diperbarui: ${namaBarang}`, 'info');
     toast('Tersimpan', 'Perubahan berhasil disimpan.');
     closeModal();
