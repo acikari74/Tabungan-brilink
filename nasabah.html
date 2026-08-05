@@ -755,16 +755,23 @@ function renderHome(){
 function toggleBalance(){ STATE.showBalance = !STATE.showBalance; renderCurrentTab(); }
 
 /* ---------- Menu cepat: Ajak Teman, Promo, Info Rekening ---------- */
+let pesanAjakTemanSaatIni = '';
 function openAjakTeman(){
   const c = STATE.customer;
-  const pesan = `Halo! Saya mau ajak kamu buka tabungan di ${document.title.split('—')[0].trim()}. Aman, gampang dicek kapan saja lewat HP. Yuk tanya-tanya ke agen terdekat!`;
+  const namaAgen = STATE.agentSettings.name || document.title.split('—')[0].trim();
+  const linkApp = location.href.split('?')[0].split('#')[0];
+  const pesan = `Halo! Saya mau ajak kamu buka tabungan di ${namaAgen}. Aman, gampang dicek kapan saja lewat HP.\n\nLangsung buka & install app-nya di sini:\n${linkApp}\n\nSetelah itu tinggal tanya-tanya ke agen terdekat buat mulai. Yuk!`;
+  pesanAjakTemanSaatIni = pesan;
   openSheet(`
     <h3 style="margin:0 0 4px; color:var(--text-main);">Ajak Teman Menabung</h3>
-    <p style="font-size:12.5px; color:var(--text-muted); margin:0 0 18px;">Bagikan pesan ini ke teman/keluarga yang belum punya tabungan.</p>
-    <div style="background:var(--bg); border-radius:12px; padding:14px; font-size:13px; color:var(--text-main); line-height:1.6; margin-bottom:18px;">${pesan}</div>
-    <button class="btn-primary" style="width:100%; margin-bottom:10px;" onclick="window.open('https://wa.me/?text='+encodeURIComponent('${pesan}'),'_blank')">Bagikan lewat WhatsApp</button>
+    <p style="font-size:12.5px; color:var(--text-muted); margin:0 0 18px;">Bagikan pesan ini (sudah termasuk link app-nya) ke teman/keluarga yang belum punya tabungan.</p>
+    <div style="background:var(--bg); border-radius:12px; padding:14px; font-size:13px; color:var(--text-main); line-height:1.6; margin-bottom:18px; white-space:pre-wrap;">${pesan}</div>
+    <button class="btn-primary" style="width:100%; margin-bottom:10px;" onclick="shareAjakTemanWA()">Bagikan lewat WhatsApp</button>
     <button class="btn-outline" style="width:100%;" onclick="closeSheet()">Tutup</button>
   `);
+}
+function shareAjakTemanWA(){
+  window.open('https://wa.me/?text='+encodeURIComponent(pesanAjakTemanSaatIni), '_blank');
 }
 function openPromoList(){
   const banners = STATE.banners;
