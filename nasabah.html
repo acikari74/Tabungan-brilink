@@ -496,9 +496,11 @@ function showToast(title, msg, icon){
     el.style.opacity='0'; el.style.transform='translateX(-50%) translateY(-20px)';
     setTimeout(()=>el.remove(), 300);
   }, 5000);
-  if(document.hidden && 'Notification' in window && Notification.permission==='granted'){
-    try{ new Notification(title, { body: msg, icon: 'icons/icon-192.png' }); }catch(e){}
-  }
+  // Catatan: sengaja TIDAK membuat Notification() manual di sini lagi.
+  // Notifikasi HP asli (yang bunyi + muncul walau app tertutup) sepenuhnya
+  // ditangani oleh server (Cloud Function → FCM). Kalau di sini juga bikin
+  // Notification manual, hasilnya jadi notifikasi dobel untuk 1 kejadian
+  // yang sama. showToast() ini cukup untuk kartu kecil di DALAM app saja.
 }
 async function mintaIzinNotifikasi(){
   if(!('Notification' in window) || !('serviceWorker' in navigator)) return;
