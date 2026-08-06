@@ -18,25 +18,11 @@ const messaging = firebase.messaging();
 self.addEventListener('install', () => { self.skipWaiting(); });
 self.addEventListener('activate', (event) => { event.waitUntil(clients.claim()); });
 
-// Ditangani otomatis oleh Firebase Messaging SDK saat app benar-benar
-// tertutup/di-background: notifikasi tetap muncul di HP seperti WhatsApp.
-// Sengaja baca dari payload.data (bukan payload.notification) — supaya
-// browser TIDAK ikut menampilkan notifikasi otomatis sendiri di luar kendali
-// kita, yang tadinya menyebabkan notifikasi muncul dobel.
-messaging.onBackgroundMessage((payload) => {
-  const d = payload.data || {};
-  // PENTING: return promise-nya, supaya sistem browser menunggu sampai
-  // notifikasi kita benar-benar tampil. Kalau tidak di-return, browser bisa
-  // menganggap "belum ada notifikasi ditampilkan" dan menampilkan notifikasi
-  // cadangan sendiri yang kosong tanpa judul/keterangan.
-  return self.registration.showNotification(d.title || 'Pasti Punya', {
-    body: d.body || '',
-    icon: d.icon || 'icons/icon-192.png',
-    badge: 'icons/icon-192.png',
-    tag: 'pasti-punya-notif',
-    data: { link: d.link || './nasabah.html' },
-  });
-});
+// Sengaja TIDAK pakai messaging.onBackgroundMessage() di sini. Karena pesan
+// dari server sudah menyertakan field "notification", Firebase Messaging SDK
+// SUDAH OTOMATIS menampilkan notifikasinya sendiri saat app di-background —
+// tanpa perlu kode tambahan. Kalau kita juga menampilkan manual di sini,
+// notifikasinya jadi muncul DOBEL. Ini pola paling stabil untuk web push.
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
