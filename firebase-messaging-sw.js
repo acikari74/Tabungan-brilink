@@ -14,23 +14,29 @@ const messaging = firebase.messaging();
 
 // Ditangani otomatis oleh Firebase Messaging SDK saat app benar-benar
 // tertutup/di-background: notifikasi tetap muncul di HP seperti WhatsApp.
+// Sengaja baca dari payload.data (bukan payload.notification) — supaya
+// browser TIDAK ikut menampilkan notifikasi otomatis sendiri di luar kendali
+// kita, yang tadinya menyebabkan notifikasi muncul dobel.
 messaging.onBackgroundMessage((payload) => {
-  const n = payload.notification || {};
-  self.registration.showNotification(n.title || 'Pasti Punya', {
-    body: n.body || '',
-    icon: 'icons/icon-192.png',
+  const d = payload.data || {};
+  self.registration.showNotification(d.title || 'Pasti Punya', {
+    body: d.body || '',
+    icon: d.icon || 'icons/icon-192.png',
     badge: 'icons/icon-192.png',
+    tag: 'pasti-punya-notif',
+    data: { link: d.link || './nasabah.html' },
   });
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const link = (event.notification.data && event.notification.data.link) || './nasabah.html';
   event.waitUntil(
     clients.matchAll({ type: 'window' }).then((clientList) => {
       for (const client of clientList) {
         if (client.url.includes('nasabah.html') && 'focus' in client) return client.focus();
       }
-      if (clients.openWindow) return clients.openWindow('./nasabah.html');
+      if (clients.openWindow) return clients.openWindow(link);
     })
   );
 });
