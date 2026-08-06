@@ -19,7 +19,11 @@ const messaging = firebase.messaging();
 // kita, yang tadinya menyebabkan notifikasi muncul dobel.
 messaging.onBackgroundMessage((payload) => {
   const d = payload.data || {};
-  self.registration.showNotification(d.title || 'Pasti Punya', {
+  // PENTING: return promise-nya, supaya sistem browser menunggu sampai
+  // notifikasi kita benar-benar tampil. Kalau tidak di-return, browser bisa
+  // menganggap "belum ada notifikasi ditampilkan" dan menampilkan notifikasi
+  // cadangan sendiri yang kosong tanpa judul/keterangan.
+  return self.registration.showNotification(d.title || 'Pasti Punya', {
     body: d.body || '',
     icon: d.icon || 'icons/icon-192.png',
     badge: 'icons/icon-192.png',
