@@ -518,10 +518,13 @@ async function mintaIzinNotifikasi(){
       // Hapus token LAMA milik nasabah ini dulu (kalau ada, dari device/sesi
       // sebelumnya) sebelum simpan yang baru — supaya cuma 1 token aktif per
       // nasabah, dan notifikasi tidak terkirim dobel/tripel ke token-token lama.
-      const tokenLama = await db.collection('fcm_tokens').where('customerId','==',STATE.customerId).get();
-      const hapusPromises = [];
-      tokenLama.forEach(doc=>{ if(doc.id !== token) hapusPromises.push(doc.ref.delete()); });
-      await Promise.all(hapusPromises);
+      try{
+        const tokenLama = await db.collection('fcm_tokens').where('customerId','==',STATE.customerId).get();
+        const hasilHapus = await Promise.allSettled(
+          tokenLama.docs.filter(doc=>doc.id!==token).map(doc=>doc.ref.delete())
+        );
+        hasilHapus.forEach(h=>{ if(h.status==='rejected') console.error('Gagal hapus token lama:', h.reason); });
+      }catch(errBersih){ console.error('Gagal cek/bersihkan token lama:', errBersih); }
       await db.collection('fcm_tokens').doc(token).set({ customerId: STATE.customerId, updatedAt: new Date().toISOString() });
       tampilkanTipsBateraiSekaliSaja();
     }
