@@ -12,6 +12,12 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Paksa versi baru service worker ini langsung aktif menggantikan versi lama
+// yang mungkin masih "nyangkut" di HP nasabah — supaya perbaikan kode selalu
+// langsung kepakai tanpa nasabah perlu uninstall/hapus data segala.
+self.addEventListener('install', () => { self.skipWaiting(); });
+self.addEventListener('activate', (event) => { event.waitUntil(clients.claim()); });
+
 // Ditangani otomatis oleh Firebase Messaging SDK saat app benar-benar
 // tertutup/di-background: notifikasi tetap muncul di HP seperti WhatsApp.
 // Sengaja baca dari payload.data (bukan payload.notification) — supaya
