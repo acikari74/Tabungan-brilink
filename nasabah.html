@@ -231,7 +231,7 @@ const db = firebase.firestore();
 const CUSTOMER_EMAIL_DOMAIN = '@nasabah.tabungan-app.local';
 // TEMPEL VAPID KEY DARI: Firebase Console > Project Settings > Cloud Messaging
 // > Web configuration > Web Push certificates > Generate key pair
-const VAPID_KEY = "BFyaWDxXIhyWVkO3GaxWmerdJ2vHJa1EHEI8cfOUPUG98GqOhRVm5tOHxqjzMCov7HrGOeDCILdzf4t1RkrpAq8";
+const VAPID_KEY = "TEMPEL_VAPID_KEY_ANDA_DI_SINI";
 
 function normalizeDigits(s){ return (s||'').replace(/\D/g,''); }
 function pesanRamah(err){
@@ -515,13 +515,38 @@ async function mintaIzinNotifikasi(){
     if(messaging.useServiceWorker) messaging.useServiceWorker(reg);
     const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
     if(token && STATE.customerId){
+      // Hapus token LAMA milik nasabah ini dulu (kalau ada, dari device/sesi
+      // sebelumnya) sebelum simpan yang baru — supaya cuma 1 token aktif per
+      // nasabah, dan notifikasi tidak terkirim dobel/tripel ke token-token lama.
+      const tokenLama = await db.collection('fcm_tokens').where('customerId','==',STATE.customerId).get();
+      const hapusPromises = [];
+      tokenLama.forEach(doc=>{ if(doc.id !== token) hapusPromises.push(doc.ref.delete()); });
+      await Promise.all(hapusPromises);
       await db.collection('fcm_tokens').doc(token).set({ customerId: STATE.customerId, updatedAt: new Date().toISOString() });
+      tampilkanTipsBateraiSekaliSaja();
     }
     messaging.onMessage(payload=>{
-      const n = payload.notification || {};
-      showToast(n.title||'Notifikasi', n.body||'', '🔔');
+      const d = payload.data || {};
+      showToast(d.title||'Notifikasi', d.body||'', '🔔');
     });
   }catch(e){ console.error('Gagal mendaftar notifikasi:', e); }
+}
+function tampilkanTipsBateraiSekaliSaja(){
+  if(localStorage.getItem('tips_baterai_shown')==='true') return;
+  localStorage.setItem('tips_baterai_shown', 'true');
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  if(!isAndroid) return; // tips ini spesifik Android, iPhone beda mekanismenya
+  setTimeout(()=>{
+    openSheet(`
+      <h3 style="margin:0 0 4px; color:var(--text-main);">🔔 Notifikasi Sudah Aktif</h3>
+      <p style="font-size:12.5px; color:var(--text-muted); margin:0 0 16px;">Supaya notifikasi selalu muncul & bunyi (tidak ditahan HP), sekali ini saja lakukan:</p>
+      <div style="background:var(--bg); border-radius:12px; padding:16px; font-size:12.5px; line-height:1.8;">
+        Buka <b>Setelan HP → Aplikasi → Chrome → Baterai</b>, lalu pilih <b>"Tidak Dibatasi"</b>.
+      </div>
+      <p style="font-size:11px; color:var(--text-muted); margin:12px 0 0;">Ini cuma perlu dilakukan sekali. Beda merk HP mungkin sedikit beda letaknya, tapi intinya cari "Baterai" di info aplikasi Chrome.</p>
+      <button class="btn-outline" style="width:100%; margin-top:14px;" onclick="closeSheet()">Mengerti</button>
+    `);
+  }, 1200);
 }
 
 /* ---------- Lonceng Notifikasi (berfungsi: riwayat aktivitas + status izin) ---------- */
