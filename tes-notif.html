@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tes Notifikasi</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif; max-width:600px; margin:0 auto; padding:20px; background:#f5f6fa; color:#1a1a1a;}
+  h1{font-size:20px;}
+  button{width:100%; padding:16px; font-size:15px; font-weight:700; border:none; border-radius:12px; background:#4169E1; color:#fff; margin-bottom:12px; cursor:pointer;}
+  button.alt{background:#fff; color:#4169E1; border:2px solid #4169E1;}
+  #log{background:#111; color:#0f0; padding:14px; border-radius:10px; font-family:monospace; font-size:12px; white-space:pre-wrap; word-break:break-all; min-height:200px; line-height:1.6;}
+  .step{background:#fff; border-radius:12px; padding:16px; margin-bottom:14px; border:1px solid #e5e5e5;}
+</style>
+</head>
+<body>
+
+<h1>🔍 Tes Notifikasi — Pasti Punya</h1>
+<p style="font-size:13px; color:#666;">Halaman ini khusus untuk menemukan di mana notifikasi terputus. Jalankan berurutan dari atas.</p>
+
+<div class="step">
+  <b>Langkah 1</b> — Daftarkan device ini
+  <button onclick="langkah1()">Mulai Langkah 1</button>
+</div>
+
+<div class="step">
+  <b>Langkah 2</b> — Tes notifikasi LOKAL (tanpa server)<br>
+  <small style="color:#666;">Ini menguji apakah HP-nya sendiri bisa menampilkan notifikasi.</small>
+  <button class="alt" onclick="langkah2()">Tes Notifikasi Lokal</button>
+</div>
+
+<div class="step">
+  <b>Langkah 3</b> — Salin token untuk tes dari Firebase Console
+  <button class="alt" onclick="langkah3()">Tampilkan & Salin Token</button>
+</div>
+
+<h3 style="font-size:14px;">Hasil:</h3>
+<div id="log">Menunggu...</div>
+
+<script>
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBVD_JxRan2imOtcWCxc78_2zHvb1uY_UA",
+  authDomain: "buku-tabungan-d91d3.firebaseapp.com",
+  projectId: "buku-tabungan-d91d3",
+  storageBucket: "buku-tabungan-d91d3.firebasestorage.app",
+  messagingSenderId: "259351197970",
+  appId: "1:259351197970:web:468eee581958e5f74f1bcb"
+};
+const VAPID_KEY = "TEMPEL_VAPID_KEY_ANDA_DI_SINI";
+
+firebase.initializeApp(FIREBASE_CONFIG);
+let tokenTersimpan = null;
+
+function log(msg, ok){
+  const el = document.getElementById('log');
+  const waktu = new Date().toLocaleTimeString('id-ID');
+  const warna = ok===true ? '#0f0' : ok===false ? '#f66' : '#ff0';
+  el.innerHTML += `<div style="color:${warna};">[${waktu}] ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function langkah1(){
+  document.getElementById('log').innerHTML = '';
+  log('=== LANGKAH 1 DIMULAI ===');
+
+  if(VAPID_KEY.includes('TEMPEL_VAPID')){
+    log('GAGAL: VAPID_KEY di file ini belum diisi. Isi dulu seperti di nasabah.html.', false);
+    return;
+  }
+  log('VAPID key: terisi ✓', true);
+
+  if(!('Notification' in window)){ log('GAGAL: Browser tidak mendukung notifikasi.', false); return; }
+  log('Browser mendukung Notification API ✓', true);
+
+  if(!('serviceWorker' in navigator)){ log('GAGAL: Browser tidak mendukung service worker.', false); return; }
+  log('Browser mendukung Service Worker ✓', true);
+
+  log('Status izin sekarang: ' + Notification.permission);
+  if(Notification.permission !== 'granted'){
+    log('Meminta izin notifikasi...');
+    const hasil = await Notification.requestPermission();
+    log('Hasil permintaan izin: ' + hasil, hasil==='granted');
+    if(hasil !== 'granted'){
+      log('GAGAL: Izin ditolak. Buka Setelan situs di browser, izinkan Notifikasi, lalu ulangi.', false);
+      return;
+    }
+  } else {
+    log('Izin sudah diberikan ✓', true);
+  }
+
+  try{
+    log('Mendaftarkan service worker...');
+    const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js', { scope: './' });
+    log('Service worker terdaftar ✓ (scope: ' + reg.scope + ')', true);
+
+    await navigator.serviceWorker.ready;
+    log('Service worker AKTIF & siap ✓', true);
+
+    const messaging = firebase.messaging();
+    log('Mengambil token FCM...');
+    const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+    if(!token){ log('GAGAL: Token kosong.', false); return; }
+    tokenTersimpan = token;
+    log('Token berhasil didapat ✓', true);
+    log('Token (10 karakter awal): ' + token.slice(0,10) + '...');
+
+    messaging.onMessage(p=>{
+      log('>>> PESAN DITERIMA saat halaman TERBUKA <<<', true);
+      log('Isi payload: ' + JSON.stringify(p));
+    });
+    log('Siap menerima pesan. Lanjut ke Langkah 2 & 3.', true);
+  }catch(e){
+    log('GAGAL saat setup: ' + e.message, false);
+  }
+}
+
+async function langkah2(){
+  log('=== LANGKAH 2: Tes notifikasi LOKAL ===');
+  if(Notification.permission !== 'granted'){ log('GAGAL: Izin belum diberikan, jalankan Langkah 1 dulu.', false); return; }
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    await reg.showNotification('Tes Notifikasi Lokal', {
+      body: 'Kalau ini muncul di HP Anda, berarti HP-nya SUDAH BISA menampilkan notifikasi.',
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-badge.png',
+    });
+    log('Perintah tampilkan notifikasi dikirim ✓', true);
+    log('Cek HP Anda sekarang. Kalau MUNCUL → masalahnya di pengiriman dari server.', true);
+    log('Kalau TIDAK muncul → masalahnya di pengaturan HP/browser.', true);
+  }catch(e){
+    log('GAGAL: ' + e.message, false);
+  }
+}
+
+function langkah3(){
+  log('=== LANGKAH 3: Token untuk tes manual ===');
+  if(!tokenTersimpan){ log('GAGAL: Jalankan Langkah 1 dulu.', false); return; }
+  log('TOKEN LENGKAP (salin ini):');
+  log(tokenTersimpan);
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(tokenTersimpan)
+      .then(()=>log('Token sudah disalin ke clipboard ✓', true))
+      .catch(()=>log('Salin manual dari teks di atas.'));
+  }
+  log('Pakai token ini di Firebase Console > Messaging > buat campaign tes.');
+}
+</script>
+</body>
+</html>
