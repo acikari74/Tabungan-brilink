@@ -13,16 +13,25 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // Paksa versi baru service worker ini langsung aktif menggantikan versi lama
-// yang mungkin masih "nyangkut" di HP nasabah — supaya perbaikan kode selalu
-// langsung kepakai tanpa nasabah perlu uninstall/hapus data segala.
+// yang mungkin masih "nyangkut" di HP nasabah.
 self.addEventListener('install', () => { self.skipWaiting(); });
 self.addEventListener('activate', (event) => { event.waitUntil(clients.claim()); });
 
-// Sengaja TIDAK pakai messaging.onBackgroundMessage() di sini. Karena pesan
-// dari server sudah menyertakan field "notification", Firebase Messaging SDK
-// SUDAH OTOMATIS menampilkan notifikasinya sendiri saat app di-background —
-// tanpa perlu kode tambahan. Kalau kita juga menampilkan manual di sini,
-// notifikasinya jadi muncul DOBEL. Ini pola paling stabil untuk web push.
+// Kita KONTROL PENUH tampilan notifikasinya secara manual di sini (bukan
+// mengandalkan auto-display bawaan browser yang ternyata tidak selalu
+// konsisten di semua device). Server mengirim payload "data" saja supaya
+// browser tidak ikut coba menampilkan otomatis dari jalur lain.
+messaging.onBackgroundMessage((payload) => {
+  const d = payload.data || {};
+  return self.registration.showNotification(d.title || 'Pasti Punya', {
+    body: d.body || '',
+    icon: d.icon || 'icons/icon-192.png',
+    badge: 'icons/icon-badge.png',
+    tag: 'pasti-punya-notif',
+    renotify: true,
+    data: { link: d.link || './nasabah.html' },
+  });
+});
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
