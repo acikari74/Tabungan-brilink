@@ -23,14 +23,19 @@ self.addEventListener('activate', (event) => { event.waitUntil(clients.claim());
 // browser tidak ikut coba menampilkan otomatis dari jalur lain.
 messaging.onBackgroundMessage((payload) => {
   const d = payload.data || {};
-  return self.registration.showNotification(d.title || 'Pasti Punya', {
+  const opsi = {
     body: d.body || '',
     icon: d.icon || 'icons/icon-192.png',
     badge: 'icons/icon-badge.png',
     tag: 'pasti-punya-notif',
     renotify: true,
     data: { link: d.link || './nasabah.html' },
-  });
+  };
+  // Kalau ada gambar (misal banner promo), tampilkan sebagai gambar besar di
+  // dalam notifikasi — cuma didukung sebagian device/versi Android, kalau
+  // tidak didukung otomatis diabaikan begitu saja (tidak error).
+  if (d.image) opsi.image = d.image;
+  return self.registration.showNotification(d.title || 'Pasti Punya', opsi);
 });
 
 self.addEventListener('notificationclick', (event) => {
